@@ -20,13 +20,10 @@ registerAzureDiagramIcons();
 // Register mermaid-based diagram renderer
 registerDiagramRenderer(ArchitectureDiagram);
 
-// Import the app (self-registers via registerApp)
-import './TryAksApp';
-
-import { AppRouter } from '@sabbour/adaptive-ui-core';
+import { TryAksApp } from './TryAksApp';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   React.createElement(React.StrictMode, null,
-    React.createElement(AppRouter)
+    React.createElement(TryAksApp)
   )
 );

@@ -1,23 +1,14 @@
 import React, { useState, useCallback, useRef, useSyncExternalStore, useEffect } from 'react';
-import { AdaptiveApp, registerApp, registerPackWithSkills, clearAllPacks, getActivePackScope, setActivePackScope, registerDiagramRenderer, SessionsSidebar, FileViewer, FileViewerPlaceholder, ResizeHandle, generateSessionId, saveSession, deleteSession, setSessionScope, upsertArtifact, getArtifacts, subscribeArtifacts, loadArtifactsForSession, saveArtifactsForSession, deleteArtifactsForSession, setArtifactsScope } from '@sabbour/adaptive-ui-core';
+import { AdaptiveApp, getActivePackScope, setActivePackScope, SessionsSidebar, FileViewer, FileViewerPlaceholder, ResizeHandle, generateSessionId, saveSession, deleteSession, setSessionScope, upsertArtifact, getArtifacts, subscribeArtifacts, loadArtifactsForSession, saveArtifactsForSession, deleteArtifactsForSession, setArtifactsScope } from '@sabbour/adaptive-ui-core';
 import type { AdaptiveUISpec } from '@sabbour/adaptive-ui-core';
-import { createAzurePack } from '@sabbour/adaptive-ui-azure-pack';
-import { createGitHubPack } from '@sabbour/adaptive-ui-github-pack';
-import { registerAzureDiagramIcons } from '@sabbour/adaptive-ui-azure-pack/diagram-icons';
-import { ArchitectureDiagram } from './ArchitectureDiagram';
 import { buildDiagramFromArtifacts } from './diagram-builder';
 import { validateAllManifests } from './safeguards-checker';
 import { validateK8sManifest } from './k8s-validator';
 import type { SafeguardViolation } from './k8s-validator';
 
-// Lazy pack registration
+// Pack scope guard — packs are registered in main.tsx, this just sets the scope
 function ensureTryAksPacks() {
   if (getActivePackScope() === 'try-aks') return;
-  clearAllPacks();
-  registerPackWithSkills(createAzurePack());
-  registerPackWithSkills(createGitHubPack());
-  registerAzureDiagramIcons();
-  registerDiagramRenderer(ArchitectureDiagram);
   setActivePackScope('try-aks');
 }
 
@@ -26,10 +17,6 @@ function ensureTryAksPacks() {
 const BASE_SYSTEM_PROMPT = `You are Deploy on AKS — an expert Kubernetes deployment engineer specializing in AKS Automatic. You help users deploy production-ready, scalable, secure cloud-native applications to Azure Kubernetes Service.
 
 TARGET PLATFORM: AKS Automatic with managed system node pools (hostedSystemProfile.enabled: true). No classic AKS. No user node pool configuration.
-
-TRACK SELECTION:
-When the user says "I want to deploy a web application", set state.deploymentTrack to "web-app" and begin web app discovery.
-When the user says "I want to deploy an agentic application", set state.deploymentTrack to "agentic-app" and begin agentic app discovery.
 
 ═══ INFRASTRUCTURE APPROACH ═══
 Ask the user which approach they prefer:
@@ -68,9 +55,25 @@ After generating K8s manifests, SELF-CHECK and fix violations before presenting.
 Default: create new ACR, attach to AKS. Offer option to use existing ACR.
 Use AcrPull role assignment with kubelet managed identity.
 
-═══ GITHUB ACTIONS CI/CD ═══
-Generate .github/workflows/deploy.yml: build image, push to ACR, deploy to AKS.
-Use OIDC federated credentials for GitHub to Azure auth.
+═══ GITHUB & AZURE INTEGRATION ═══
+You have access to the Azure and GitHub packs. Use their components — do NOT ask for tokens, repos, or subscriptions via text input fields.
+
+AZURE AUTH FLOW (use Azure pack components):
+1. Show azureLogin component if user needs Azure resources and __azureToken is not set
+2. Use azurePicker for selecting existing resources (regions, resource groups, existing ACR)
+3. Use azureQuery for ARM API write operations with confirmation
+4. NEVER ask the user to paste tokens or subscription IDs — the pack handles auth
+
+GITHUB FLOW (use GitHub pack components):
+1. Show githubLogin component when GitHub is needed and __githubToken is not set
+2. Use githubPicker for selecting orgs, repos, branches — NEVER ask users to type repo names
+3. Use githubCreatePR to commit generated files — it handles branch creation, commits, and PR
+4. NEVER ask users to paste GitHub tokens — the pack handles OAuth
+
+WORKFLOW:
+- After generating all files (Bicep, K8s manifests, Dockerfile, CI/CD pipeline), prompt the user to commit them
+- Use githubLogin → githubPicker (org/repo) → githubCreatePR to commit all artifacts as a PR
+- The CI/CD pipeline in .github/workflows/ will handle the actual deployment
 
 ═══ CODE GENERATION ═══
 Generate as codeBlock components. label = filename (e.g., "k8s/deployment.yaml", "Dockerfile").
@@ -110,7 +113,9 @@ SCAFFOLD (in this order):
 6. k8s/service-account.yaml — workload identity annotation (if Azure services needed)
 7. infra/main.bicep — AKS (Automatic, hostedSystemProfile), ACR, databases, managed identity, federated credentials
 8. infra/parameters.json
-9. .github/workflows/deploy.yml`;
+9. .github/workflows/deploy.yml — Build, push, deploy pipeline
+
+After scaffolding, use githubLogin → githubPicker → githubCreatePR to commit files.`;
 
 const AGENTIC_APP_ADDENDUM = `
 
@@ -144,37 +149,34 @@ SCAFFOLD (in this order):
 9. .github/workflows/deploy.yml
 10. Application scaffold: main.py, requirements.txt
 
+After scaffolding, use githubLogin → githubPicker → githubCreatePR to commit files.
+
 PATTERN: FastAPI serving agent as REST API, /healthz for probes, DefaultAzureCredential for all Azure auth.`;
 
-// ─── Initial Spec ───
+// ─── Initial Specs (per track) ───
 
-const initialSpec: AdaptiveUISpec = {
+const webAppInitialSpec: AdaptiveUISpec = {
   version: '1',
-  title: 'Deploy on AKS',
-  agentMessage: "Welcome to **Deploy on AKS** \u2014 your guided experience for deploying production-ready applications to Azure Kubernetes Service.\n\nChoose your deployment track to get started:",
-  state: {},
+  title: 'Deploy on AKS — Web Application',
+  agentMessage: "I'm ready to help you deploy a **web application** to AKS Automatic. Let's start by understanding your project.\n\nWhat framework and language are you using? (e.g., Next.js, Flask, ASP.NET, Go, Express)",
+  state: { deploymentTrack: 'web-app' },
   layout: {
-    type: 'columns',
-    children: [
-      {
-        type: 'card',
-        title: 'Web Application',
-        children: [
-          { type: 'text', content: 'Deploy containerized web frontends and APIs. Includes Dockerfile, Kubernetes manifests, Gateway API routing, and CI/CD pipeline.' },
-          { type: 'button', label: 'Get Started', onClick: { type: 'sendPrompt', prompt: 'I want to deploy a web application' }, variant: 'primary' },
-        ],
-      },
-      {
-        type: 'card',
-        title: 'Agentic Application',
-        children: [
-          { type: 'text', content: 'Deploy AI agents with tool-calling capabilities. Includes Azure AI Foundry, model deployment, RAG, and conversation history.' },
-          { type: 'button', label: 'Get Started', onClick: { type: 'sendPrompt', prompt: 'I want to deploy an agentic application' }, variant: 'primary' },
-        ],
-      },
-    ],
-  } as any,
-  diagram: 'flowchart TD\n  Dev(["Developer"])\n  subgraph aks["%%icon:azure/aks%%AKS Automatic"]\n    App["Your App"]\n  end\n  Dev --> aks',
+    type: 'chatInput',
+    placeholder: 'Describe your web application...',
+  },
+  diagram: 'flowchart TD\n  Dev(["Developer"])\n  subgraph aks["%%icon:azure/aks%%AKS Automatic"]\n    GW["Gateway API"]\n    App["Web App"]\n    GW --> App\n  end\n  Dev --> GW',
+};
+
+const agenticAppInitialSpec: AdaptiveUISpec = {
+  version: '1',
+  title: 'Deploy on AKS — Agentic Application',
+  agentMessage: "I'm ready to help you deploy an **AI agent** to AKS Automatic. Let's start by understanding your project.\n\nWhat agent framework do you prefer? (Azure AI Foundry SDK, Semantic Kernel, LangChain — or let me recommend one)",
+  state: { deploymentTrack: 'agentic-app' },
+  layout: {
+    type: 'chatInput',
+    placeholder: 'Describe your AI agent...',
+  },
+  diagram: 'flowchart TD\n  Dev(["Developer"])\n  subgraph aks["%%icon:azure/aks%%AKS Automatic"]\n    GW["Gateway API"]\n    Agent["AI Agent"]\n    GW --> Agent\n  end\n  subgraph ai["Azure AI Services"]\n    AOAI["%%icon:azure/cognitive-services%%Azure OpenAI"]\n  end\n  Dev --> GW\n  Agent --> AOAI',
 };
 
 // ─── Mermaid extraction ───
@@ -312,6 +314,115 @@ function SafeguardsBanner({ violations }: { violations: SafeguardViolation[] }) 
   );
 }
 
+// ─── Landing Page ───
+
+function LandingPage({ onSelect }: { onSelect: (track: 'web-app' | 'agentic-app') => void }) {
+  return React.createElement('div', {
+    style: {
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      height: '100%', width: '100%',
+      background: 'linear-gradient(160deg, #f3f2f1 0%, #e8e6e4 100%)',
+    } as React.CSSProperties,
+  },
+    React.createElement('div', {
+      style: {
+        maxWidth: '720px', width: '90%', textAlign: 'center' as const,
+      },
+    },
+      // Title
+      React.createElement('h1', {
+        style: {
+          fontSize: '32px', fontWeight: 600, color: '#323130',
+          margin: '0 0 8px', letterSpacing: '-0.02em',
+          fontFamily: '"Segoe UI", system-ui, sans-serif',
+        },
+      }, 'Deploy on AKS'),
+      React.createElement('p', {
+        style: {
+          fontSize: '16px', color: '#605e5c', margin: '0 0 40px',
+          lineHeight: 1.6,
+        },
+      }, 'Production-ready applications on AKS Automatic. Choose your deployment track.'),
+
+      // Cards
+      React.createElement('div', {
+        style: {
+          display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px',
+        } as React.CSSProperties,
+      },
+        // Web App card
+        React.createElement('button', {
+          onClick: () => onSelect('web-app'),
+          style: {
+            background: '#ffffff', border: '1px solid #edebe9',
+            borderRadius: '8px', padding: '32px 24px',
+            cursor: 'pointer', textAlign: 'left' as const,
+            boxShadow: '0 1.6px 3.6px 0 rgba(0,0,0,0.132), 0 0.3px 0.9px 0 rgba(0,0,0,0.108)',
+            transition: 'border-color 0.15s, box-shadow 0.15s',
+          },
+          onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => {
+            e.currentTarget.style.borderColor = '#0078d4';
+            e.currentTarget.style.boxShadow = '0 3.2px 7.2px 0 rgba(0,120,212,0.18), 0 0.6px 1.8px 0 rgba(0,120,212,0.11)';
+          },
+          onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => {
+            e.currentTarget.style.borderColor = '#edebe9';
+            e.currentTarget.style.boxShadow = '0 1.6px 3.6px 0 rgba(0,0,0,0.132), 0 0.3px 0.9px 0 rgba(0,0,0,0.108)';
+          },
+        },
+          React.createElement('div', {
+            style: { fontSize: '20px', fontWeight: 600, color: '#323130', marginBottom: '8px' },
+          }, 'Web Application'),
+          React.createElement('div', {
+            style: { fontSize: '14px', color: '#605e5c', lineHeight: 1.5 },
+          }, 'Deploy containerized web frontends and APIs. Includes Dockerfile, Kubernetes manifests, Gateway API routing, and CI/CD pipeline.'),
+          React.createElement('div', {
+            style: {
+              marginTop: '16px', fontSize: '14px', fontWeight: 600, color: '#0078d4',
+            },
+          }, 'Get started \u2192')
+        ),
+
+        // Agentic App card
+        React.createElement('button', {
+          onClick: () => onSelect('agentic-app'),
+          style: {
+            background: '#ffffff', border: '1px solid #edebe9',
+            borderRadius: '8px', padding: '32px 24px',
+            cursor: 'pointer', textAlign: 'left' as const,
+            boxShadow: '0 1.6px 3.6px 0 rgba(0,0,0,0.132), 0 0.3px 0.9px 0 rgba(0,0,0,0.108)',
+            transition: 'border-color 0.15s, box-shadow 0.15s',
+          },
+          onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => {
+            e.currentTarget.style.borderColor = '#0078d4';
+            e.currentTarget.style.boxShadow = '0 3.2px 7.2px 0 rgba(0,120,212,0.18), 0 0.6px 1.8px 0 rgba(0,120,212,0.11)';
+          },
+          onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => {
+            e.currentTarget.style.borderColor = '#edebe9';
+            e.currentTarget.style.boxShadow = '0 1.6px 3.6px 0 rgba(0,0,0,0.132), 0 0.3px 0.9px 0 rgba(0,0,0,0.108)';
+          },
+        },
+          React.createElement('div', {
+            style: { fontSize: '20px', fontWeight: 600, color: '#323130', marginBottom: '8px' },
+          }, 'Agentic Application'),
+          React.createElement('div', {
+            style: { fontSize: '14px', color: '#605e5c', lineHeight: 1.5 },
+          }, 'Deploy AI agents with tool-calling capabilities. Includes Azure AI Foundry, model deployment, RAG, and conversation history.'),
+          React.createElement('div', {
+            style: {
+              marginTop: '16px', fontSize: '14px', fontWeight: 600, color: '#0078d4',
+            },
+          }, 'Get started \u2192')
+        )
+      ),
+
+      // Footer
+      React.createElement('p', {
+        style: { fontSize: '12px', color: '#a19f9d', marginTop: '32px' },
+      }, 'Powered by AKS Automatic with managed system node pools, Gateway API, and Workload Identity')
+    )
+  );
+}
+
 // ─── Main App ───
 
 // ensureTryAksPacks is safe during render (guarded, no store notifications).
@@ -326,7 +437,7 @@ export function TryAksApp() {
   });
 
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
-  const [deploymentTrack, setDeploymentTrack] = useState<string | null>(null);
+  const [deploymentTrack, setDeploymentTrack] = useState<'web-app' | 'agentic-app' | null>(null);
   const [currentViolations, setCurrentViolations] = useState<SafeguardViolation[]>([]);
   const artifacts = useSyncExternalStore(subscribeArtifacts, getArtifacts);
   const sendPromptRef = useRef<((prompt: string) => void) | null>(null);
@@ -337,12 +448,21 @@ export function TryAksApp() {
     if (!initialLoadDone.current) {
       initialLoadDone.current = true;
       loadArtifactsForSession(sessionId);
-      const loaded = getArtifacts();
-      if (loaded.length === 0 && initialSpec.diagram) {
-        upsertArtifact('architecture.mmd', initialSpec.diagram, 'mermaid', 'Architecture');
-      }
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Seed diagram artifact when track is first selected
+  useEffect(() => {
+    if (deploymentTrack) {
+      const spec = deploymentTrack === 'web-app' ? webAppInitialSpec : agenticAppInitialSpec;
+      if (spec.diagram) {
+        const loaded = getArtifacts();
+        if (!loaded.some((a) => a.filename === 'architecture.mmd')) {
+          upsertArtifact('architecture.mmd', spec.diagram, 'mermaid', 'Architecture');
+        }
+      }
+    }
+  }, [deploymentTrack]);
 
   // Resolve file selection
   const resolvedFileId = (selectedFileId && artifacts.some((a) => a.id === selectedFileId))
@@ -389,12 +509,6 @@ export function TryAksApp() {
     (deploymentTrack === 'agentic-app' ? AGENTIC_APP_ADDENDUM : '');
 
   const handleSpecChange = useCallback((spec: AdaptiveUISpec) => {
-    // Detect track selection from state
-    const track = (spec as any).state?.deploymentTrack;
-    if (track && track !== deploymentTrack) {
-      setDeploymentTrack(track);
-    }
-
     // Auto-save code blocks as artifacts
     seenFilenames.clear();
     const codeBlocks = extractCodeBlocksFromLayout(spec.layout);
@@ -446,10 +560,6 @@ export function TryAksApp() {
     saveSession(newId, 'New session', []);
     setSelectedFileId(null);
     loadArtifactsForSession(newId);
-    if (initialSpec.diagram) {
-      const art = upsertArtifact('architecture.mmd', initialSpec.diagram, 'mermaid', 'Architecture');
-      setSelectedFileId(art.id);
-    }
   }, [sessionId]);
 
   const handleSelectSession = useCallback((id: string) => {
@@ -472,10 +582,6 @@ export function TryAksApp() {
       saveSession(newId, 'New session', []);
       loadArtifactsForSession(newId);
       try { localStorage.setItem('adaptive-ui-active-session-try-aks', newId); } catch {}
-      if (initialSpec.diagram) {
-        const art = upsertArtifact('architecture.mmd', initialSpec.diagram, 'mermaid', 'Architecture');
-        setSelectedFileId(art.id);
-      }
     }
   }, [sessionId]);
 
@@ -495,6 +601,18 @@ export function TryAksApp() {
   const validationBanner = currentViolations.length > 0
     ? React.createElement(SafeguardsBanner, { violations: currentViolations })
     : null;
+
+  // Get the right initial spec for the selected track
+  const initialSpec = deploymentTrack === 'web-app' ? webAppInitialSpec
+    : deploymentTrack === 'agentic-app' ? agenticAppInitialSpec
+    : webAppInitialSpec; // fallback, won't be used since landing page shows first
+
+  // Show landing page if no track selected
+  if (!deploymentTrack) {
+    return React.createElement(LandingPage, {
+      onSelect: (track: 'web-app' | 'agentic-app') => setDeploymentTrack(track),
+    });
+  }
 
   return React.createElement('div', {
     style: {
@@ -550,7 +668,7 @@ export function TryAksApp() {
       } as React.CSSProperties,
     },
       React.createElement(AdaptiveApp, {
-        key: sessionId,
+        key: sessionId + '-' + deploymentTrack,
         initialSpec,
         persistKey: sessionId,
         systemPromptSuffix: systemPrompt,
@@ -567,11 +685,3 @@ export function TryAksApp() {
     )
   );
 }
-
-// Self-register
-registerApp({
-  id: 'try-aks',
-  name: 'Deploy on AKS',
-  description: 'Deploy production-ready applications to AKS Automatic',
-  component: TryAksApp,
-});
