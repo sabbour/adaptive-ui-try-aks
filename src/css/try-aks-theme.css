@@ -1,31 +1,18 @@
 :root {
-  /* Azure brand colors */
-  --azure-blue: #0078d4;
-  --azure-blue-hover: #106ebe;
-  --azure-blue-dark: #004578;
-  --azure-bg: #f3f2f1;
-  --azure-surface: #ffffff;
-  --azure-text: #323130;
-  --azure-text-secondary: #605e5c;
-  --azure-border: #edebe9;
-  --azure-success: #107c10;
-  --azure-warning: #ffb900;
-  --azure-error: #d13438;
-
-  /* Map to adaptive UI CSS variables */
-  --adaptive-primary: var(--azure-blue);
-  --adaptive-bg: var(--azure-bg);
-  --adaptive-surface: var(--azure-surface);
-  --adaptive-text: var(--azure-text);
-  --adaptive-text-secondary: var(--azure-text-secondary);
-  --adaptive-border: var(--azure-border);
+  /* Azure brand colors — override adaptive defaults */
+  --adaptive-primary: #0078d4;
+  --adaptive-bg: #f3f2f1;
+  --adaptive-surface: #ffffff;
+  --adaptive-text: #323130;
+  --adaptive-text-secondary: #605e5c;
+  --adaptive-border: #edebe9;
 
   /* Typography — Segoe UI (Azure standard) */
   font-family: "Segoe UI", "Segoe UI Web (West European)", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
   font-size: 14px;
   line-height: 1.5;
-  color: var(--azure-text);
-  background-color: var(--azure-bg);
+  color: #323130;
+  background-color: #f3f2f1;
 }
 
 body {
@@ -39,4 +26,32 @@ body {
   height: 100vh;
   width: 100vw;
   overflow: hidden;
+}
+
+/* Azure-branded primary buttons */
+button {
+  font-family: "Segoe UI", "Segoe UI Web (West European)", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
+}
+
+/* Override card styling for Azure look */
+.adaptive-card {
+  border-radius: 4px;
+  box-shadow: 0 1.6px 3.6px 0 rgba(0, 0, 0, 0.132), 0 0.3px 0.9px 0 rgba(0, 0, 0, 0.108);
+}
+
+/* Azure-style input fields */
+.adaptive-input,
+.adaptive-select {
+  border-radius: 2px;
+  border-color: #8a8886;
+}
+
+.adaptive-input:focus,
+.adaptive-select:focus {
+  border-color: #0078d4;
+}
+
+/* Chat input area Azure styling */
+.adaptive-chat-input textarea {
+  font-family: "Segoe UI", "Segoe UI Web (West European)", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
 }

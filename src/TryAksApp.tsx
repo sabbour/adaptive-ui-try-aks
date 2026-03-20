@@ -161,7 +161,7 @@ const initialSpec: AdaptiveUISpec = {
         title: 'Web Application',
         children: [
           { type: 'text', content: 'Deploy containerized web frontends and APIs. Includes Dockerfile, Kubernetes manifests, Gateway API routing, and CI/CD pipeline.' },
-          { type: 'button', label: 'Get Started', onClick: { type: 'sendPrompt', value: 'I want to deploy a web application' }, variant: 'primary' },
+          { type: 'button', label: 'Get Started', onClick: { type: 'sendPrompt', prompt: 'I want to deploy a web application' }, variant: 'primary' },
         ],
       },
       {
@@ -169,7 +169,7 @@ const initialSpec: AdaptiveUISpec = {
         title: 'Agentic Application',
         children: [
           { type: 'text', content: 'Deploy AI agents with tool-calling capabilities. Includes Azure AI Foundry, model deployment, RAG, and conversation history.' },
-          { type: 'button', label: 'Get Started', onClick: { type: 'sendPrompt', value: 'I want to deploy an agentic application' }, variant: 'primary' },
+          { type: 'button', label: 'Get Started', onClick: { type: 'sendPrompt', prompt: 'I want to deploy an agentic application' }, variant: 'primary' },
         ],
       },
     ],
