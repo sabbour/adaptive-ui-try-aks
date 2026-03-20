@@ -314,9 +314,18 @@ function SafeguardsBanner({ violations }: { violations: SafeguardViolation[] }) 
 
 // ─── Main App ───
 
-export function TryAksApp() {
+// Scope sessions/artifacts before component renders to avoid setState-during-render warnings.
+// These are module-level side effects that only need to run once.
+let _scopeInitialized = false;
+function initScopes() {
+  if (_scopeInitialized) return;
+  _scopeInitialized = true;
   setSessionScope('try-aks');
   setArtifactsScope('try-aks');
+}
+initScopes();
+
+export function TryAksApp() {
   ensureTryAksPacks();
 
   const [sessionId, setSessionId] = useState(() => {
