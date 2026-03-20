@@ -1,0 +1,31 @@
+{
+  "name": "@sabbour/adaptive-ui-try-aks",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "link:packs": "npm link @sabbour/adaptive-ui-core @sabbour/adaptive-ui-azure-pack @sabbour/adaptive-ui-github-pack",
+    "unlink:packs": "npm unlink @sabbour/adaptive-ui-core @sabbour/adaptive-ui-azure-pack @sabbour/adaptive-ui-github-pack && npm install"
+  },
+  "dependencies": {
+    "@sabbour/adaptive-ui-core": "^0.1.0",
+    "@sabbour/adaptive-ui-azure-pack": "^0.1.0",
+    "@sabbour/adaptive-ui-github-pack": "^0.1.0",
+    "@mermaid-js/layout-elk": "^0.2.1",
+    "mermaid": "^11.13.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "yaml": "^2.6.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "~5.6.2",
+    "vite": "^6.0.0"
+  }
+}

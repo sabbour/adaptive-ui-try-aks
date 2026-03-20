@@ -1,0 +1,42 @@
+:root {
+  /* Azure brand colors */
+  --azure-blue: #0078d4;
+  --azure-blue-hover: #106ebe;
+  --azure-blue-dark: #004578;
+  --azure-bg: #f3f2f1;
+  --azure-surface: #ffffff;
+  --azure-text: #323130;
+  --azure-text-secondary: #605e5c;
+  --azure-border: #edebe9;
+  --azure-success: #107c10;
+  --azure-warning: #ffb900;
+  --azure-error: #d13438;
+
+  /* Map to adaptive UI CSS variables */
+  --adaptive-primary: var(--azure-blue);
+  --adaptive-bg: var(--azure-bg);
+  --adaptive-surface: var(--azure-surface);
+  --adaptive-text: var(--azure-text);
+  --adaptive-text-secondary: var(--azure-text-secondary);
+  --adaptive-border: var(--azure-border);
+
+  /* Typography — Segoe UI (Azure standard) */
+  font-family: "Segoe UI", "Segoe UI Web (West European)", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--azure-text);
+  background-color: var(--azure-bg);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#root {
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
