@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useSyncExternalStore, useEffect } from 'react';
-import { AdaptiveApp, getActivePackScope, setActivePackScope, SessionsSidebar, FileViewer, FileViewerPlaceholder, ResizeHandle, generateSessionId, saveSession, deleteSession, setSessionScope, upsertArtifact, getArtifacts, subscribeArtifacts, loadArtifactsForSession, saveArtifactsForSession, deleteArtifactsForSession, setArtifactsScope } from '@sabbour/adaptive-ui-core';
+import { AdaptiveApp, getActivePackScope, setActivePackScope, SessionsSidebar, FileViewer, FileViewerPlaceholder, ResizeHandle, generateSessionId, saveSession, deleteSession, getSessions, setSessionScope, upsertArtifact, getArtifacts, subscribeArtifacts, loadArtifactsForSession, saveArtifactsForSession, deleteArtifactsForSession, setArtifactsScope } from '@sabbour/adaptive-ui-core';
 import type { AdaptiveUISpec } from '@sabbour/adaptive-ui-core';
 import { buildDiagramFromArtifacts } from './diagram-builder';
 import { validateAllManifests } from './safeguards-checker';
@@ -566,7 +566,6 @@ export function TryAksApp() {
     saveArtifactsForSession(sessionId);
     setSessionId(id);
     setSelectedFileId(null);
-    setDeploymentTrack(null);
     loadArtifactsForSession(id);
     try { localStorage.setItem('adaptive-ui-active-session-try-aks', id); } catch {}
   }, [sessionId]);
@@ -575,13 +574,23 @@ export function TryAksApp() {
     deleteSession(id);
     deleteArtifactsForSession(id);
     if (id === sessionId) {
-      const newId = generateSessionId();
-      setSessionId(newId);
-      setSelectedFileId(null);
-      setDeploymentTrack(null);
-      saveSession(newId, 'New session', []);
-      loadArtifactsForSession(newId);
-      try { localStorage.setItem('adaptive-ui-active-session-try-aks', newId); } catch {}
+      // Switch to the next remaining session, or go to landing page if none left
+      const remaining = getSessions().filter((s) => s.id !== id);
+      if (remaining.length > 0) {
+        const next = remaining[0];
+        setSessionId(next.id);
+        setSelectedFileId(null);
+        loadArtifactsForSession(next.id);
+        try { localStorage.setItem('adaptive-ui-active-session-try-aks', next.id); } catch {}
+      } else {
+        // No sessions left — go back to track selector
+        setDeploymentTrack(null);
+        const newId = generateSessionId();
+        setSessionId(newId);
+        setSelectedFileId(null);
+        loadArtifactsForSession(newId);
+        try { localStorage.setItem('adaptive-ui-active-session-try-aks', newId); } catch {}
+      }
     }
   }, [sessionId]);
 
