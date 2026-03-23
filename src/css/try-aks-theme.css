@@ -1,18 +1,48 @@
 :root {
-  /* Azure brand colors — override adaptive defaults */
-  --adaptive-primary: #0078d4;
-  --adaptive-bg: #f3f2f1;
-  --adaptive-surface: #ffffff;
-  --adaptive-text: #323130;
-  --adaptive-text-secondary: #605e5c;
-  --adaptive-border: #edebe9;
+  /* ═══ Azure Portal Light Theme (exact portal.css tokens) ═══ */
 
-  /* Typography — Segoe UI (Azure standard) */
-  font-family: "Segoe UI", "Segoe UI Web (West European)", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
-  font-size: 14px;
-  line-height: 1.5;
-  color: #323130;
-  background-color: #f3f2f1;
+  /* Color system — Azure Portal exact */
+  --adaptive-primary: #0078d4;
+  --adaptive-bg: #ffffff;
+  --adaptive-surface: #ffffff;
+  --adaptive-text: #292827;
+  --adaptive-text-secondary: #646464;
+  --adaptive-border: #e1dfdd;
+
+  /* Extended palette — portal.css exact */
+  --try-aks-sidebar-bg: #ffffff;
+  --try-aks-sidebar-border: #e1dfdd;
+  --try-aks-chat-bg: #ffffff;
+  --try-aks-hover: rgba(85,179,255,0.1);
+  --try-aks-active: rgba(85,179,255,0.2);
+  --try-aks-surface-raised: #f3f2f1;
+  --try-aks-input-bg: #ffffff;
+  --try-aks-primary-hover: #106ebe;
+  --try-aks-primary-pressed: #005a9e;
+  --try-aks-danger: #a4262c;
+  --try-aks-success: #428000;
+  --try-aks-warning: #db7500;
+  --try-aks-info: #015cda;
+  --try-aks-divider: #f3f2f1;
+  --try-aks-text-disabled: #a19f9d;
+  --try-aks-link: #0078d4;
+  --try-aks-link-hover: #004578;
+
+  /* Shadows — Fluent exact (portal.css) */
+  --adaptive-shadow-sm: 0 1.6px 3.6px 0 rgba(0,0,0,.132), 0 .3px .9px 0 rgba(0,0,0,.108);
+  --adaptive-shadow-md: 0 3.2px 7.2px 0 rgba(0,0,0,.132), 0 .6px 1.8px 0 rgba(0,0,0,.108);
+  --adaptive-shadow-lg: 0 6.4px 14.4px 0 rgba(0,0,0,.132), 0 1.2px 3.6px 0 rgba(0,0,0,.108);
+  --adaptive-shadow-focus: inset 0 0 0 1px #0078d4;
+
+  /* Shape — Azure Portal exact */
+  --adaptive-radius: 2px;
+
+  /* Typography — Azure Portal exact */
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--adaptive-text);
+  background-color: var(--adaptive-bg);
 }
 
 body {
@@ -20,6 +50,7 @@ body {
   padding: 0;
   height: 100vh;
   overflow: hidden;
+  background-color: var(--adaptive-bg);
 }
 
 #root {
@@ -28,30 +59,312 @@ body {
   overflow: hidden;
 }
 
-/* Azure-branded primary buttons */
+/* ─── Buttons ─── */
 button {
-  font-family: "Segoe UI", "Segoe UI Web (West European)", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 }
 
-/* Override card styling for Azure look */
+/* ─── Cards — Azure Portal (no border-radius, Fluent shadow) ─── */
 .adaptive-card {
-  border-radius: 4px;
-  box-shadow: 0 1.6px 3.6px 0 rgba(0, 0, 0, 0.132), 0 0.3px 0.9px 0 rgba(0, 0, 0, 0.108);
+  border-radius: 0;
+  background-color: var(--adaptive-surface);
+  border: 1px solid var(--adaptive-border);
+  box-shadow: none;
 }
 
-/* Azure-style input fields */
+.adaptive-card:hover {
+  box-shadow: none;
+}
+
+/* ─── Inputs — Azure Portal exact ─── */
 .adaptive-input,
-.adaptive-select {
+.adaptive-select,
+input[type="text"],
+input[type="number"],
+textarea,
+select {
   border-radius: 2px;
-  border-color: #8a8886;
+  border: 1px solid #8a8886;
+  background-color: var(--try-aks-input-bg);
+  color: var(--adaptive-text);
+  height: 32px;
+  font-size: 13px;
+  line-height: 20px;
 }
 
 .adaptive-input:focus,
-.adaptive-select:focus {
-  border-color: #0078d4;
+.adaptive-select:focus,
+input[type="text"]:focus,
+input[type="number"]:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--adaptive-primary);
+  box-shadow: var(--adaptive-shadow-focus);
+  outline: none;
 }
 
-/* Chat input area Azure styling */
+.adaptive-input:hover,
+.adaptive-select:hover,
+input[type="text"]:hover,
+input[type="number"]:hover,
+textarea:hover,
+select:hover {
+  border-color: #323130;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--try-aks-text-disabled);
+}
+
+input:disabled,
+textarea:disabled,
+select:disabled {
+  background-color: #f3f2f1;
+  border-color: #a19f9d;
+  color: var(--try-aks-text-disabled);
+  cursor: not-allowed;
+}
+
+/* ─── Chat input ─── */
 .adaptive-chat-input textarea {
-  font-family: "Segoe UI", "Segoe UI Web (West European)", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  border-radius: 2px;
+  background-color: var(--try-aks-input-bg);
+  color: var(--adaptive-text);
+  border: 1px solid #8a8886;
+}
+
+/* ─── Agent bubble ─── */
+.adaptive-agent-bubble {
+  background-color: var(--try-aks-surface-raised) !important;
+  border-color: var(--adaptive-border) !important;
+  color: var(--adaptive-text);
+  border-radius: 2px 16px 16px 16px;
+}
+
+/* ─── User bubble — Azure blue accent ─── */
+.adaptive-user-bubble {
+  background-color: var(--adaptive-primary) !important;
+  color: #ffffff !important;
+}
+
+/* ─── Alerts — Azure Portal exact (border-left accent) ─── */
+.adaptive-alert-info {
+  background-color: #dae4ff !important;
+  color: #004578 !important;
+  border: 1px solid #015cda !important;
+  border-radius: 2px !important;
+}
+
+.adaptive-alert-success {
+  background-color: #e6ffcc !important;
+  color: #292827 !important;
+  border: 1px solid #428000 !important;
+  border-radius: 2px !important;
+}
+
+.adaptive-alert-warning {
+  background-color: #ffdfb8 !important;
+  color: #6d5700 !important;
+  border: 1px solid #db7500 !important;
+  border-radius: 2px !important;
+}
+
+.adaptive-alert-error {
+  background-color: #fdd8db !important;
+  color: #a80000 !important;
+  border: 1px solid #a4262c !important;
+  border-radius: 2px !important;
+}
+
+/* ─── Option cards — Azure Portal radio/selection style ─── */
+.adaptive-option-card {
+  background-color: var(--adaptive-surface);
+  border: 1px solid var(--adaptive-border);
+  border-radius: 2px;
+}
+
+.adaptive-option-card:hover {
+  background-color: #faf9f8;
+}
+
+.adaptive-option-card-selected {
+  border-color: var(--adaptive-primary) !important;
+  background-color: #deecf9 !important;
+}
+
+/* ─── Tabs — Azure Portal exact (underline, no bg) ─── */
+.adaptive-tab {
+  color: var(--adaptive-text-secondary);
+  font-size: 13px;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.adaptive-tab:hover {
+  color: var(--adaptive-text);
+  background-color: transparent;
+}
+
+.adaptive-tab-active {
+  color: var(--adaptive-primary);
+  border-bottom-color: var(--adaptive-primary);
+  font-weight: 600;
+}
+
+/* ─── Settings panel ─── */
+.adaptive-settings-panel {
+  background-color: var(--adaptive-surface);
+  border-color: var(--adaptive-border);
+  border-radius: 0;
+}
+
+.adaptive-settings-section {
+  border-color: var(--try-aks-divider);
+}
+
+/* ─── Tables — Azure Portal exact ─── */
+table {
+  font-size: 13px;
+}
+
+tr:hover td {
+  background-color: #f3f2f1;
+}
+
+th {
+  color: var(--adaptive-text);
+  border-color: var(--adaptive-border);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+td {
+  border-color: var(--try-aks-divider);
+  font-size: 13px;
+}
+
+/* ─── Scrollbar — Azure Portal style ─── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c8c8c8;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a0a0a0;
+}
+
+/* ─── Markdown content ─── */
+.adaptive-markdown a {
+  color: var(--try-aks-link);
+}
+
+.adaptive-markdown a:hover {
+  color: var(--try-aks-link-hover);
+  text-decoration: underline;
+}
+
+.adaptive-markdown code {
+  background-color: #f3f2f1;
+  color: var(--adaptive-text);
+  border: 1px solid var(--adaptive-border);
+  border-radius: 2px;
+  padding: 1px 4px;
+  font-size: 13px;
+}
+
+.adaptive-markdown blockquote {
+  border-left-color: var(--adaptive-primary);
+  color: var(--adaptive-text-secondary);
+}
+
+/* ─── Toggle — Azure Portal track ─── */
+.adaptive-toggle-track {
+  background-color: #c8c6c4;
+  border: 1px solid #a19f9d;
+}
+
+/* ─── Headings ─── */
+h1, h2, h3, h4 {
+  color: var(--adaptive-text);
+}
+
+/* ─── Primary buttons — Azure Portal exact ─── */
+.adaptive-button-primary,
+button[data-variant="primary"] {
+  background-color: #0078d4 !important;
+  border-color: #0078d4 !important;
+  color: #ffffff !important;
+  border-radius: 2px !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  height: 32px;
+}
+
+.adaptive-button-primary:hover,
+button[data-variant="primary"]:hover {
+  background-color: #106ebe !important;
+  border-color: #106ebe !important;
+}
+
+/* ─── Secondary buttons ─── */
+.adaptive-button-secondary,
+button[data-variant="secondary"] {
+  background-color: #ffffff !important;
+  border: 1px solid #8a8886 !important;
+  color: #323130 !important;
+  border-radius: 2px !important;
+  font-size: 13px !important;
+  height: 32px;
+}
+
+.adaptive-button-secondary:hover,
+button[data-variant="secondary"]:hover {
+  background-color: #f3f2f1 !important;
+  color: #201f1e !important;
+}
+
+/* ─── Select/combobox dropdown — Azure Portal exact ─── */
+.adaptive-select-dropdown,
+.adaptive-combobox-dropdown,
+[role="listbox"] {
+  background-color: #ffffff;
+  border: 1px solid var(--adaptive-border);
+  color: var(--adaptive-text);
+  box-shadow: var(--adaptive-shadow-md);
+  border-radius: 2px;
+}
+
+.adaptive-select-option:hover,
+.adaptive-combobox-option:hover,
+[role="option"]:hover {
+  background-color: #f3f2f1;
+}
+
+.adaptive-select-option[aria-selected="true"],
+.adaptive-combobox-option[aria-selected="true"],
+[role="option"][aria-selected="true"] {
+  background-color: #e6f2ff;
+  color: var(--adaptive-text);
+  font-weight: 600;
+}
+
+/* ─── Links — Azure Portal ─── */
+a {
+  color: var(--try-aks-link);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--try-aks-link-hover);
+  text-decoration: underline;
 }

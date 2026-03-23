@@ -64,13 +64,16 @@ function extractK8sResources(yamlContent: string): K8sResource[] {
   const docs = yamlContent.split(/^---$/m);
   for (const doc of docs) {
     const kindMatch = doc.match(/kind:\s*(\w+)/);
-    const nameMatch = doc.match(/metadata:\s*\n\s+name:\s*["']?([a-z0-9-]+)/);
-    if (kindMatch) {
-      resources.push({
-        kind: kindMatch[1],
-        name: nameMatch ? nameMatch[1] : kindMatch[1].toLowerCase(),
-      });
+    if (!kindMatch) continue;
+    const kind = kindMatch[1];
+    // Extract name from metadata block — match indented lines after "metadata:"
+    const metadataBlock = doc.match(/metadata:\s*\n((?:\s+.+(?:\n|$))+)/);
+    let name = kind.toLowerCase();
+    if (metadataBlock) {
+      const nameMatch = metadataBlock[1].match(/^\s+name:\s*["']?([a-z0-9][-a-z0-9]*)["']?/m);
+      if (nameMatch) name = nameMatch[1];
     }
+    resources.push({ kind, name });
   }
   return resources;
 }
@@ -108,8 +111,8 @@ export function buildDiagramFromArtifacts(artifacts: Artifact[]): string | null 
   // AKS cluster and its workloads
   const hasAKS = azureResources.some((r) => r.type === 'Microsoft.ContainerService/managedClusters');
   const deployments = k8sResources.filter((r) => r.kind === 'Deployment' || r.kind === 'StatefulSet');
-  const gateways = k8sResources.filter((r) => r.kind === 'Gateway');
-  const services = k8sResources.filter((r) => r.kind === 'Service');
+  const gateways = k8sResources.filter((r) => r.kind === 'Gateway' || r.kind === 'HTTPRoute');
+  const kaitoWorkspaces = k8sResources.filter((r) => r.kind === 'Workspace');
 
   if (hasAKS || deployments.length > 0) {
     lines.push('  subgraph aks["%%icon:azure/aks%%AKS Automatic"]');
@@ -123,10 +126,25 @@ export function buildDiagramFromArtifacts(artifacts: Artifact[]): string | null 
       lines.push('    ' + id + '["' + dep.name + '"]');
     }
 
-    if (services.length > 0 && gateways.length > 0) {
+    // KAITO workspaces inside cluster
+    for (const ws of kaitoWorkspaces) {
+      const id = 'kaito' + ws.name.split('-').join('');
+      lines.push('    ' + id + '["KAITO: ' + ws.name + '"]');
+    }
+
+    if (gateways.length > 0) {
       for (const dep of deployments) {
         const id = dep.name.split('-').join('');
         lines.push('    GW --> ' + id);
+      }
+    }
+
+    // Connect deployments to KAITO workspaces
+    if (kaitoWorkspaces.length > 0 && deployments.length > 0) {
+      const firstDep = deployments[0].name.split('-').join('');
+      for (const ws of kaitoWorkspaces) {
+        const id = 'kaito' + ws.name.split('-').join('');
+        lines.push('    ' + firstDep + ' --> ' + id);
       }
     }
 
@@ -134,10 +152,13 @@ export function buildDiagramFromArtifacts(artifacts: Artifact[]): string | null 
     lines.push('  User --> ' + (gateways.length > 0 ? 'GW' : (deployments.length > 0 ? deployments[0].name.split('-').join('') : 'aks')));
   }
 
-  // External Azure services (non-AKS)
+  // External Azure services (non-AKS, non-infra)
   const externalServices = azureResources.filter((r) =>
     r.type !== 'Microsoft.ContainerService/managedClusters' &&
-    r.type !== 'Microsoft.ManagedIdentity/userAssignedIdentities'
+    r.type !== 'Microsoft.ManagedIdentity/userAssignedIdentities' &&
+    r.type !== 'Microsoft.ContainerRegistry/registries' &&
+    r.type !== 'Microsoft.OperationalInsights/workspaces' &&
+    r.type !== 'Microsoft.Insights/components'
   );
 
   if (externalServices.length > 0) {
@@ -158,10 +179,14 @@ export function buildDiagramFromArtifacts(artifacts: Artifact[]): string | null 
     }
   }
 
-  // ACR connection
+  // ACR connection — AKS pulls images from ACR
   const hasACR = azureResources.some((r) => r.type === 'Microsoft.ContainerRegistry/registries');
-  if (hasACR && hasAKS) {
-    lines.push('  registries --> aks');
+  if (hasACR) {
+    lines.push('  ACR["%%icon:azure/acr%%Container Registry"]');
+    if (hasAKS) {
+      lines.push('  ACR -.->|pull| aks');
+    }
+    lines.push('  User -->|push| ACR');
   }
 
   return lines.join('\n');

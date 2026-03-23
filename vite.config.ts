@@ -8,20 +8,9 @@ export default defineConfig({
     host: true,
     open: true,
     proxy: {
-      '/auth-proxy': {
-        target: 'https://login.microsoftonline.com',
+      '/api': {
+        target: 'http://localhost:7071',
         changeOrigin: true,
-        rewrite: (p) => p.replace(/^\/auth-proxy/, ''),
-      },
-      '/github-oauth/device/code': {
-        target: 'https://github.com',
-        changeOrigin: true,
-        rewrite: () => '/login/device/code',
-      },
-      '/github-oauth/access_token': {
-        target: 'https://github.com',
-        changeOrigin: true,
-        rewrite: () => '/login/oauth/access_token',
       },
     },
   },

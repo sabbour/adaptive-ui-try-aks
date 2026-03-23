@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import mermaid from 'mermaid';
 import elkLayouts from '@mermaid-js/layout-elk';
 import { getDiagramIconRegistry } from '@sabbour/adaptive-ui-core';
+import iconBuildingCloud from '@sabbour/adaptive-ui-core/icons/fluent/building-cloud.svg?url';
+import iconDesignIdeas from '@sabbour/adaptive-ui-core/icons/fluent/design-ideas.svg?url';
 
 // Register ELK layout engine for better node distribution
 mermaid.registerLayoutLoaders(elkLayouts);
@@ -11,27 +13,27 @@ mermaid.initialize({
   startOnLoad: false,
   theme: 'base',
   themeVariables: {
-    // Node colors
-    primaryColor: '#EEF2FF',
-    primaryBorderColor: '#818CF8',
-    primaryTextColor: '#1E1B4B',
+    // Node colors — Azure Portal light
+    primaryColor: '#ffffff',
+    primaryBorderColor: '#0078d4',
+    primaryTextColor: '#292827',
     // Edge colors
-    lineColor: '#94A3B8',
+    lineColor: '#a19f9d',
     // Group/subgraph colors
-    secondaryColor: '#F8FAFC',
-    secondaryBorderColor: '#CBD5E1',
-    tertiaryColor: '#FFFFFF',
+    secondaryColor: '#f3f2f1',
+    secondaryBorderColor: '#e1dfdd',
+    tertiaryColor: '#faf9f8',
     // Typography
-    fontSize: '14px',
-    fontFamily: '"Segoe UI", "Segoe UI Semibold", "Segoe UI Light", system-ui, -apple-system, sans-serif',
+    fontSize: '13px',
+    fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
     // Background
-    background: '#FFFFFF',
-    mainBkg: '#EEF2FF',
-    nodeBorder: '#818CF8',
-    clusterBkg: '#F8FAFC',
-    clusterBorder: '#CBD5E1',
-    titleColor: '#1E293B',
-    edgeLabelBackground: '#FFFFFF',
+    background: '#ffffff',
+    mainBkg: '#ffffff',
+    nodeBorder: '#0078d4',
+    clusterBkg: '#f3f2f1',
+    clusterBorder: '#e1dfdd',
+    titleColor: '#292827',
+    edgeLabelBackground: '#ffffff',
   },
   flowchart: {
     htmlLabels: true,
@@ -110,11 +112,28 @@ export function ArchitectureDiagram({ diagram, title }: ArchitectureDiagramProps
 
         let processedDiagram = diagram;
 
-        // Escape parentheses inside bracket labels so Mermaid doesn't misparse them
+        // 1. Wrap unquoted bracket labels containing parens in quotes
+        //    [Label (with parens)] → ["Label (with parens)"]
         processedDiagram = processedDiagram.replace(
           /\[([^\]"]*\([^\]]*)\]/g,
           (_match, label) => `["${label}"]`
         );
+
+        // 2. HTML-encode parentheses inside ALL quoted bracket labels ["..."]
+        //    This prevents mermaid from interpreting ( ) as node shape markers
+        processedDiagram = processedDiagram.replace(
+          /\["([^"]*)"\]/g,
+          (_match, label) => `["${label.split('(').join('&#40;').split(')').join('&#41;')}"]`
+        );
+
+        // 3. Also fix subgraph labels with parens
+        processedDiagram = processedDiagram.replace(
+          /subgraph\s+(\w+)\[([^\]"]*\([^\]]*)\]/g,
+          (_match, id, label) => `subgraph ${id}["${label.split('(').join('&#40;').split(')').join('&#41;')}"]`
+        );
+
+        // Increment diagram counter to avoid ID collision on re-render
+        idRef.current = `arch-diagram-${++diagramCounter}`;
 
         const { svg } = await mermaid.render(idRef.current, processedDiagram);
 
@@ -142,11 +161,11 @@ export function ArchitectureDiagram({ diagram, title }: ArchitectureDiagramProps
               stroke-width: 1.5;
             }
             .architecture-diagram-svg .cluster rect {
-              rx: 12 !important; ry: 12 !important;
+              rx: 0 !important; ry: 0 !important;
               stroke-dasharray: none !important;
-              fill: #F1F5F9 !important;
-              stroke: #94A3B8 !important;
-              stroke-width: 2 !important;
+              fill: #f3f2f1 !important;
+              stroke: #e1dfdd !important;
+              stroke-width: 1 !important;
             }
             .architecture-diagram-svg .cluster-label,
             .architecture-diagram-svg .cluster .label {
@@ -167,14 +186,15 @@ export function ArchitectureDiagram({ diagram, title }: ArchitectureDiagramProps
               font-family: 'Segoe UI', system-ui, sans-serif !important;
               font-weight: 600 !important;
               font-size: 15px !important;
-              color: #475569 !important;
+              color: #646464 !important;
             }
-            .architecture-diagram-svg .edgePath .path { stroke-width: 1.5; stroke: #94A3B8; }
-            .architecture-diagram-svg .edgePath marker path { fill: #94A3B8; }
+            .architecture-diagram-svg .edgePath .path { stroke-width: 1.5; stroke: #a19f9d; }
+            .architecture-diagram-svg .edgePath marker path { fill: #a19f9d; }
             .architecture-diagram-svg .edgeLabel {
               font-family: 'Segoe UI Light', 'Segoe UI', system-ui, sans-serif;
-              font-size: 13px; background-color: #fff;
-              padding: 2px 6px; border-radius: 4px;
+              font-size: 13px; background-color: #ffffff;
+              padding: 2px 6px; border-radius: 2px;
+              color: #646464;
             }
             .architecture-diagram-svg .nodeLabel {
               font-family: 'Segoe UI', system-ui, sans-serif;
@@ -262,29 +282,29 @@ export function ArchitectureDiagram({ diagram, title }: ArchitectureDiagramProps
       display: 'flex',
       flexDirection: 'column',
       height: '100%',
-      backgroundColor: '#FAFBFC',
-      borderRight: '1px solid var(--adaptive-border, #E2E8F0)',
+      backgroundColor: '#ffffff',
+      borderRight: '1px solid var(--adaptive-border, #e1dfdd)',
     } as React.CSSProperties,
   },
     // Title bar
     React.createElement('div', {
       style: {
         padding: '14px 20px',
-        borderBottom: '1px solid var(--adaptive-border, #E2E8F0)',
+        borderBottom: '1px solid var(--adaptive-border, #e1dfdd)',
         fontSize: '13px',
         fontWeight: 600,
-        color: '#1E293B',
+        color: '#292827',
         display: 'flex',
         alignItems: 'center',
         gap: '8px',
         flexShrink: 0,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: '#faf9f8',
         letterSpacing: '0.01em',
         justifyContent: 'space-between',
       } as React.CSSProperties,
     },
       React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '8px' } },
-        React.createElement('span', { style: { fontSize: '16px' } }, '🏗️'),
+        React.createElement('img', { src: iconBuildingCloud, alt: '', width: 16, height: 16, style: { filter: 'brightness(0) saturate(100%) invert(28%) sepia(98%) saturate(1624%) hue-rotate(196deg) brightness(96%) contrast(101%)' } }),
         title || 'Solution Architecture'
       ),
       // Zoom controls
@@ -295,33 +315,33 @@ export function ArchitectureDiagram({ diagram, title }: ArchitectureDiagramProps
           onClick: () => setScale(s => Math.max(s * 0.8, 0.2)),
           title: 'Zoom out',
           style: {
-            width: '28px', height: '28px', border: '1px solid #E2E8F0',
-            borderRadius: '6px', backgroundColor: '#fff', cursor: 'pointer',
+            width: '28px', height: '28px', border: '1px solid #e1dfdd',
+            borderRadius: '2px', backgroundColor: '#ffffff', cursor: 'pointer',
             fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: '#64748B',
+            color: '#646464',
           },
-        }, '−'),
+        }, '\u2212'),
         React.createElement('span', {
-          style: { fontSize: '11px', color: '#94A3B8', fontFamily: 'monospace', minWidth: '36px', textAlign: 'center' as const },
+          style: { fontSize: '11px', color: '#646464', fontFamily: 'monospace', minWidth: '36px', textAlign: 'center' as const },
         }, `${Math.round(scale * 100)}%`),
         React.createElement('button', {
           onClick: () => setScale(s => Math.min(s * 1.2, 5)),
           title: 'Zoom in',
           style: {
-            width: '28px', height: '28px', border: '1px solid #E2E8F0',
-            borderRadius: '6px', backgroundColor: '#fff', cursor: 'pointer',
+            width: '28px', height: '28px', border: '1px solid #e1dfdd',
+            borderRadius: '2px', backgroundColor: '#ffffff', cursor: 'pointer',
             fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: '#64748B',
+            color: '#646464',
           },
         }, '+'),
         React.createElement('button', {
           onClick: resetView,
           title: 'Reset view',
           style: {
-            width: '28px', height: '28px', border: '1px solid #E2E8F0',
-            borderRadius: '6px', backgroundColor: '#fff', cursor: 'pointer',
+            width: '28px', height: '28px', border: '1px solid #e1dfdd',
+            borderRadius: '2px', backgroundColor: '#ffffff', cursor: 'pointer',
             fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: '#64748B', marginLeft: '4px',
+            color: '#646464', marginLeft: '4px',
           },
         }, '⟲')
       )
@@ -349,11 +369,11 @@ export function ArchitectureDiagram({ diagram, title }: ArchitectureDiagramProps
         ? React.createElement('div', {
             style: {
               padding: '16px 20px',
-              backgroundColor: '#FEF2F2',
-              border: '1px solid #FECACA',
-              borderRadius: '10px',
+              backgroundColor: '#fdd8db',
+              border: '1px solid #a4262c',
+              borderRadius: '2px',
               fontSize: '12px',
-              color: '#991B1B',
+              color: '#a4262c',
               maxWidth: '360px',
               lineHeight: 1.5,
             },
@@ -376,10 +396,10 @@ export function ArchitectureDiagram({ diagram, title }: ArchitectureDiagramProps
                   width: '100%',
                   minHeight: '200px',
                   padding: '16px',
-                  backgroundColor: '#FFFFFF',
-                  borderRadius: '12px',
-                  border: '1px solid #E2E8F0',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)',
+                  backgroundColor: '#ffffff',
+                  borderRadius: '0',
+                  border: '1px solid #e1dfdd',
+                  boxShadow: '0 1.6px 3.6px rgba(0,0,0,0.132), 0 0.3px 0.9px rgba(0,0,0,0.108)',
                 },
               })
             )
@@ -391,9 +411,10 @@ export function ArchitectureDiagram({ diagram, title }: ArchitectureDiagramProps
                 padding: '40px',
               } as React.CSSProperties,
             },
-              React.createElement('div', {
-                style: { fontSize: '32px', marginBottom: '12px' },
-              }, '📐'),
+              React.createElement('img', {
+                src: iconDesignIdeas, alt: '', width: 32, height: 32,
+                style: { marginBottom: '12px', opacity: 0.5, filter: 'brightness(0) saturate(100%) invert(28%) sepia(98%) saturate(1624%) hue-rotate(196deg) brightness(96%) contrast(101%)' },
+              }),
               'Architecture diagram will appear here as you design your solution.'
             )
     )
