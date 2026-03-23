@@ -18,7 +18,17 @@ function ensureTryAksPacks() {
 
 // ─── System Prompts ───
 
-const BASE_SYSTEM_PROMPT = `You are Build and Deploy on AKS Agent — an expert cloud-native engineer specializing in AKS Automatic. You help users build AND deploy production-ready, scalable, secure applications to Azure Kubernetes Service. Whether the user has an existing codebase or is starting from scratch, you guide them end-to-end — from application scaffolding to production deployment.
+const BASE_SYSTEM_PROMPT = `You are the Ship It agent — a friendly, expert deployment guide that helps developers get their apps running in production on AKS Automatic. You make shipping feel easy.
+
+AKS Automatic is a fully managed app platform for cloud-native and AI-native workloads. It handles the infrastructure — networking, scaling, security, node management — so developers can focus on their code. Think of it as a scalable runtime layer: you bring the app, it handles the rest.
+
+No Kubernetes experience required. You never surface unnecessary complexity. You speak in terms the developer already knows — apps, APIs, endpoints, databases, CI/CD — not pods, node pools, or control planes (unless the user asks). When Kubernetes concepts are needed, introduce them gently and in context.
+
+POSITIONING:
+- Production-ready by default. Every deployment gets security hardening, health checks, and best-practice infrastructure out of the box.
+- Developer-friendly. Start from scratch or bring existing code. The experience should feel like deploying to any modern platform.
+- Cost-efficient. AKS Automatic auto-selects the cheapest VMs that fit the workload and bin-packs efficiently. System nodes are free. Highlight the low cost.
+- AI-native ready. AKS Automatic is the runtime layer for agentic AI apps — self-hosted models via KAITO, RAG pipelines, tool-calling agents — all in one platform.
 
 TARGET PLATFORM: AKS Automatic with managed system node pools (hostedSystemProfile.enabled: true). No classic AKS. No user node pool configuration.
 
@@ -156,10 +166,11 @@ costEstimate — {} (no props needed)
   Example: {type:"component",component:"costEstimate",props:{}}
 
 ═══ GUARDRAILS ═══
-- AKS Automatic ONLY. Redirect other compute to Solution Architect.
+- AKS Automatic ONLY. If the user asks about classic AKS or unmanaged clusters, gently redirect to AKS Automatic and explain it is simpler and production-ready.
 - Refuse manifests violating Deployment Safeguards.
 - Always Gateway API, never Ingress/nginx.
 - Always Workload Identity, never connection strings.
+- Avoid framing AKS Automatic as "managed Kubernetes." Frame it as a scalable app platform. Use "cluster" sparingly; prefer "environment" or "platform" when talking to the developer.
 
 ═══ CONFIRMATION STYLE ═══
 When summarizing discovery, write a short readable paragraph (2-4 sentences). Then show input fields for gaps.
@@ -171,6 +182,7 @@ Do NOT enumerate internal patterns (e.g. "Gateway API", "Deployment Safeguards",
 Do NOT echo back form field values mechanically ("you want a Redis-backed..."). Summarize the user's intent naturally.
 Keep initial responses short, warm, and focused on clarifying what you need to know — not on demonstrating everything you can do.
 NEVER use emojis in responses, file lists, or summaries. Use plain text.
+Avoid Kubernetes jargon in early turns. Talk about "your app", "your environment", "production", "scaling" — not "pods", "namespaces", "manifests" until the deployment details stage. The goal is to make AKS feel as approachable as any platform-as-a-service.
 
 BE CURIOUS AND HELPFUL:
 - Ask thoughtful follow-up questions that show you understand the user's domain. For example, if someone is deploying a Next.js app, ask whether they need ISR/SSR or if static export suffices — that shapes the container setup.
@@ -441,8 +453,8 @@ PATTERN: FastAPI serving agent as REST API, /healthz for probes, DefaultAzureCre
 
 const webAppInitialSpec: AdaptiveUISpec = {
   version: '1',
-  title: 'Deploy on AKS — Web Application',
-  agentMessage: "Let's get a **web application** running on AKS Automatic. Whether you have existing code or want to start from scratch, I'll help you build and deploy it. Tell me about your project:",
+  title: 'Ship It — Web App',
+  agentMessage: "Let's get your **web app** to production. Whether you have existing code or want to start from scratch, I'll help you build, containerize, and deploy it. Tell me about your project:",
   state: { deploymentTrack: 'web-app' },
   layout: {
     type: 'form',
@@ -511,8 +523,8 @@ const webAppInitialSpec: AdaptiveUISpec = {
 
 const agenticAppInitialSpec: AdaptiveUISpec = {
   version: '1',
-  title: 'Deploy on AKS — Agentic Application',
-  agentMessage: "Let's build and deploy an **AI agent** on AKS Automatic. Whether you have existing code or are starting fresh, I'll help you from design to production. Tell me about your project:",
+  title: 'Ship It — AI Agent',
+  agentMessage: "Let's get your **AI agent** to production. Whether you have existing code or are starting fresh, I'll help you from design to a live, scalable deployment. Tell me about your project:",
   state: { deploymentTrack: 'agentic-app' },
   layout: {
     type: 'form',
@@ -975,7 +987,7 @@ export function CostEstimateComponent() {
         padding: '8px 16px', borderTop: '1px solid #f3f2f1',
         fontSize: '11px', color: '#a19f9d', lineHeight: '16px',
       },
-    }, 'AKS Automatic pricing: control plane + per-vCPU surcharge. NAP auto-selects cheapest VMs. East US estimates; costs vary by region.')
+    }, 'Pricing: AKS Automatic control plane + per-vCPU surcharge. System nodes are free. Auto-provisioning picks the cheapest VMs. East US estimates; costs vary by region.')
   );
 }
 
@@ -1001,13 +1013,13 @@ function LandingPage({ onSelect }: { onSelect: (track: 'web-app' | 'agentic-app'
           margin: '0 0 8px',
           fontFamily: "'Segoe UI', system-ui, sans-serif",
         },
-      }, 'What do you want to deploy?'),
+      }, 'What are you building?'),
       React.createElement('p', {
         style: {
           fontSize: '13px', color: '#646464', margin: '0 0 32px',
           lineHeight: '20px',
         },
-      }, 'Production-ready applications on AKS Automatic. Choose your track to get started.'),
+      }, 'Get your app running in production in minutes. Pick a starting point and let the AI guide handle the rest.'),
 
       // Cards
       React.createElement('div', {
@@ -1039,10 +1051,10 @@ function LandingPage({ onSelect }: { onSelect: (track: 'web-app' | 'agentic-app'
           }),
           React.createElement('div', {
             style: { fontSize: '14px', fontWeight: 600, color: '#292827', marginBottom: '4px' },
-          }, 'Web Application'),
+          }, 'Web App or API'),
           React.createElement('div', {
             style: { fontSize: '13px', color: '#646464', lineHeight: '20px' },
-          }, 'Build and deploy web frontends and APIs. Start from scratch or bring your own code \u2014 get a Dockerfile, Kubernetes manifests, and CI/CD pipeline.'),
+          }, 'Ship a web frontend, REST API, or microservice. Bring your code or start fresh \u2014 you will get a working app, CI/CD pipeline, and a production URL.'),
           React.createElement('div', {
             style: {
               marginTop: '14px', fontSize: '13px', fontWeight: 600, color: '#0078d4',
@@ -1074,10 +1086,10 @@ function LandingPage({ onSelect }: { onSelect: (track: 'web-app' | 'agentic-app'
           }),
           React.createElement('div', {
             style: { fontSize: '14px', fontWeight: 600, color: '#292827', marginBottom: '4px' },
-          }, 'Agentic Application'),
+          }, 'AI Agent'),
           React.createElement('div', {
             style: { fontSize: '13px', color: '#646464', lineHeight: '20px' },
-          }, 'Build and deploy AI agents with tool-calling capabilities. Start from scratch or bring existing code \u2014 includes Azure AI services, RAG, and conversation history.'),
+          }, 'Deploy an AI agent that calls tools, retrieves knowledge, and reasons over data. Self-host open-source models or connect to Azure OpenAI \u2014 with built-in scaling and low cost.'),
           React.createElement('div', {
             style: {
               marginTop: '14px', fontSize: '13px', fontWeight: 600, color: '#0078d4',
@@ -1093,16 +1105,16 @@ function LandingPage({ onSelect }: { onSelect: (track: 'web-app' | 'agentic-app'
           justifyContent: 'center', marginTop: '24px',
         } as React.CSSProperties,
       },
-        ['Next.js on AKS', 'Python FastAPI', 'Spring Boot + PostgreSQL', 'AI Agent with RAG', 'LangChain + Cosmos DB', 'Go microservice'].map(
+        ['Next.js app', 'Python FastAPI', 'Spring Boot + Postgres', 'AI Agent with RAG', 'LangChain chatbot', 'Go service'].map(
           (label) => {
             const isAgentic = label.includes('Agent') || label.includes('LangChain');
             const promptMap: Record<string, string> = {
-              'Next.js on AKS': 'I want to deploy a Next.js web application on AKS. No existing repo, start from scratch. No database needed yet.',
-              'Python FastAPI': 'I want to deploy a Python FastAPI backend on AKS. No existing repo, starting from scratch. No database for now.',
-              'Spring Boot + PostgreSQL': 'I want to deploy a Spring Boot (Java) application with a PostgreSQL database on AKS. No existing repo, start from scratch.',
-              'AI Agent with RAG': 'I want to build an AI agent with RAG capabilities on AKS. No existing repo, starting from scratch. Needs a vector search database.',
-              'LangChain + Cosmos DB': 'I want to build a LangChain Python agent with Cosmos DB for conversation history on AKS. No existing repo, starting from scratch.',
-              'Go microservice': 'I want to deploy a Go microservice on AKS. No existing repo, starting from scratch. No database needed.',
+              'Next.js app': 'I want to ship a Next.js web app to production. No existing repo, start from scratch. No database needed yet.',
+              'Python FastAPI': 'I want to ship a Python FastAPI backend to production. No existing repo, starting from scratch. No database for now.',
+              'Spring Boot + Postgres': 'I want to ship a Spring Boot (Java) app with a PostgreSQL database. No existing repo, start from scratch.',
+              'AI Agent with RAG': 'I want to build and deploy an AI agent with RAG. No existing repo, starting from scratch. Needs a vector search database.',
+              'LangChain chatbot': 'I want to build a LangChain Python chatbot with conversation history. No existing repo, starting from scratch.',
+              'Go service': 'I want to ship a Go service to production. No existing repo, starting from scratch. No database needed.',
             };
             return React.createElement('button', {
               key: label,
