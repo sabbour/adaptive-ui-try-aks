@@ -67,9 +67,11 @@ AZURE AUTH FLOW (use Azure pack components):
 
 GITHUB FLOW (use GitHub pack components):
 1. Show githubLogin component when GitHub is needed and __githubToken is not set
-2. Use githubPicker for selecting orgs, repos, branches — NEVER ask users to type repo names
-3. Use githubCreatePR to commit generated files — it handles branch creation, commits, and PR
-4. NEVER ask users to paste GitHub tokens — the pack handles OAuth
+2. Use githubPicker for selecting orgs, repos, branches — NEVER ask users to type or paste these values
+3. When selecting a repo: ALWAYS use githubPicker with the appropriate API. For orgs use api="/user/orgs" with includePersonal:true. For repos use api="/users/{{state.githubOrg}}/repos?sort=updated&type=owner". For branches use api="/repos/{{state.githubOrg}}/{{state.githubRepo}}/branches".
+4. When the user wants to create a NEW repo, use githubQuery with method:"POST" and api:"/user/repos" (personal) or api:"/orgs/{{state.githubOrg}}/repos" (org). Then use githubPicker to select it.
+5. Use githubCreatePR to commit generated files — it handles branch creation, commits, and PR
+6. NEVER ask users to paste GitHub tokens — the pack handles OAuth
 
 WORKFLOW:
 - After generating all files (Bicep, K8s manifests, Dockerfile, CI/CD pipeline), prompt the user to commit them
