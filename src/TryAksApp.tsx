@@ -60,9 +60,10 @@ You have access to the Azure and GitHub packs. Use their components — do NOT a
 
 AZURE AUTH FLOW (use Azure pack components):
 1. Show azureLogin component if user needs Azure resources and __azureToken is not set
-2. Use azurePicker for selecting existing resources (regions, resource groups, existing ACR)
+2. Use azurePicker for selecting ANY existing Azure resource — regions, resource groups, existing ACR, existing AKS clusters, existing databases, existing Key Vaults, etc. Construct the appropriate ARM API path for the resource type. NEVER ask users to type or paste resource names when they could select from existing ones.
 3. Use azureQuery for ARM API write operations with confirmation
 4. NEVER ask the user to paste tokens or subscription IDs — the pack handles auth
+5. When the user chooses "use existing" for any resource, ALWAYS show an azurePicker with the correct ARM list API for that resource type. When the user chooses "create new", use text input fields for the name.
 
 GITHUB FLOW (use GitHub pack components):
 1. Show githubLogin component when GitHub is needed and __githubToken is not set
