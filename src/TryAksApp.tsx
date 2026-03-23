@@ -161,24 +161,139 @@ PATTERN: FastAPI serving agent as REST API, /healthz for probes, DefaultAzureCre
 const webAppInitialSpec: AdaptiveUISpec = {
   version: '1',
   title: 'Deploy on AKS — Web Application',
-  agentMessage: "I'm ready to help you deploy a **web application** to AKS Automatic. Let's start by understanding your project.\n\nWhat framework and language are you using? (e.g., Next.js, Flask, ASP.NET, Go, Express)",
+  agentMessage: "Let's deploy a **web application** to AKS Automatic. Tell me about your project:",
   state: { deploymentTrack: 'web-app' },
   layout: {
-    type: 'chatInput',
-    placeholder: 'Describe your web application...',
-  },
+    type: 'form',
+    children: [
+      {
+        type: 'select',
+        label: 'Framework / Language',
+        bind: 'framework',
+        options: [
+          { label: 'Next.js (React)', value: 'nextjs' },
+          { label: 'React (Vite / CRA)', value: 'react' },
+          { label: 'Angular', value: 'angular' },
+          { label: 'Express (Node.js)', value: 'express' },
+          { label: 'Flask (Python)', value: 'flask' },
+          { label: 'Django (Python)', value: 'django' },
+          { label: 'FastAPI (Python)', value: 'fastapi' },
+          { label: 'ASP.NET Core (C#)', value: 'aspnet' },
+          { label: 'Go (net/http / Gin)', value: 'go' },
+          { label: 'Spring Boot (Java)', value: 'springboot' },
+          { label: 'Other', value: 'other' },
+        ],
+      },
+      {
+        type: 'select',
+        label: 'Do you have an existing GitHub repo?',
+        bind: 'hasRepo',
+        options: [
+          { label: 'Yes, I have an existing repo', value: 'yes' },
+          { label: 'No, start from scratch', value: 'no' },
+        ],
+      },
+      {
+        type: 'select',
+        label: 'Database needs',
+        bind: 'database',
+        options: [
+          { label: 'None', value: 'none' },
+          { label: 'PostgreSQL', value: 'postgresql' },
+          { label: 'Azure Cosmos DB', value: 'cosmosdb' },
+          { label: 'Azure SQL', value: 'azuresql' },
+          { label: 'Redis (cache)', value: 'redis' },
+          { label: 'Multiple / Not sure yet', value: 'multiple' },
+        ],
+      },
+      {
+        type: 'input',
+        label: 'Anything else to know? (optional)',
+        placeholder: 'e.g., needs auth, custom domain, multiple services...',
+        bind: 'notes',
+      },
+      {
+        type: 'button',
+        label: 'Start Deployment Setup',
+        variant: 'primary',
+        onClick: {
+          type: 'sendPrompt',
+          prompt: 'I want to deploy a {{state.framework}} web app. Existing repo: {{state.hasRepo}}. Database: {{state.database}}. Notes: {{state.notes}}',
+        },
+      },
+    ],
+  } as any,
   diagram: 'flowchart TD\n  Dev(["Developer"])\n  subgraph aks["%%icon:azure/aks%%AKS Automatic"]\n    GW["Gateway API"]\n    App["Web App"]\n    GW --> App\n  end\n  Dev --> GW',
 };
 
 const agenticAppInitialSpec: AdaptiveUISpec = {
   version: '1',
   title: 'Deploy on AKS — Agentic Application',
-  agentMessage: "I'm ready to help you deploy an **AI agent** to AKS Automatic. Let's start by understanding your project.\n\nWhat agent framework do you prefer? (Azure AI Foundry SDK, Semantic Kernel, LangChain — or let me recommend one)",
+  agentMessage: "Let's deploy an **AI agent** to AKS Automatic. Tell me about your project:",
   state: { deploymentTrack: 'agentic-app' },
   layout: {
-    type: 'chatInput',
-    placeholder: 'Describe your AI agent...',
-  },
+    type: 'form',
+    children: [
+      {
+        type: 'select',
+        label: 'Agent Framework',
+        bind: 'agentFramework',
+        options: [
+          { label: 'Azure AI Foundry SDK (recommended)', value: 'ai-foundry' },
+          { label: 'Semantic Kernel (Python)', value: 'semantic-kernel-python' },
+          { label: 'Semantic Kernel (.NET)', value: 'semantic-kernel-dotnet' },
+          { label: 'LangChain (Python)', value: 'langchain-python' },
+          { label: 'LangChain.js (Node)', value: 'langchain-js' },
+          { label: 'AutoGen', value: 'autogen' },
+          { label: 'Other', value: 'other' },
+        ],
+      },
+      {
+        type: 'select',
+        label: 'Does the agent need RAG (retrieval-augmented generation)?',
+        bind: 'needsRag',
+        options: [
+          { label: 'Yes \u2014 Azure AI Search', value: 'yes' },
+          { label: 'No', value: 'no' },
+          { label: 'Not sure yet', value: 'unsure' },
+        ],
+      },
+      {
+        type: 'select',
+        label: 'Conversation history storage?',
+        bind: 'needsHistory',
+        options: [
+          { label: 'Yes \u2014 Cosmos DB', value: 'yes' },
+          { label: 'No (stateless)', value: 'no' },
+          { label: 'Not sure yet', value: 'unsure' },
+        ],
+      },
+      {
+        type: 'select',
+        label: 'Do you have an existing GitHub repo?',
+        bind: 'hasRepo',
+        options: [
+          { label: 'Yes, I have an existing repo', value: 'yes' },
+          { label: 'No, start from scratch', value: 'no' },
+        ],
+      },
+      {
+        type: 'input',
+        label: 'What does the agent do? (optional)',
+        placeholder: 'e.g., customer support bot, code reviewer, data analyst...',
+        bind: 'agentPurpose',
+      },
+      {
+        type: 'button',
+        label: 'Start Deployment Setup',
+        variant: 'primary',
+        onClick: {
+          type: 'sendPrompt',
+          prompt: 'I want to deploy an agentic app using {{state.agentFramework}}. RAG: {{state.needsRag}}. History: {{state.needsHistory}}. Existing repo: {{state.hasRepo}}. Purpose: {{state.agentPurpose}}',
+        },
+      },
+    ],
+  } as any,
   diagram: 'flowchart TD\n  Dev(["Developer"])\n  subgraph aks["%%icon:azure/aks%%AKS Automatic"]\n    GW["Gateway API"]\n    Agent["AI Agent"]\n    GW --> Agent\n  end\n  subgraph ai["Azure AI Services"]\n    AOAI["%%icon:azure/cognitive-services%%Azure OpenAI"]\n  end\n  Dev --> GW\n  Agent --> AOAI',
 };
 
