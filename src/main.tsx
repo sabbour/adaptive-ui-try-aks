@@ -5,7 +5,7 @@ import { createAzurePack } from '@sabbour/adaptive-ui-azure-pack';
 import { createGitHubPack } from '@sabbour/adaptive-ui-github-pack';
 import { registerAzureDiagramIcons } from '@sabbour/adaptive-ui-azure-pack/diagram-icons';
 import { ArchitectureDiagram } from './ArchitectureDiagram';
-import { CostEstimateComponent, CompactCodeBlock } from './TryAksApp';
+import { CostEstimateComponent, CompactCodeBlock, DevEnvironmentCard } from './TryAksApp';
 import '@sabbour/adaptive-ui-core/css/adaptive.css';
 import './css/try-aks-theme.css';
 
@@ -44,6 +44,9 @@ registerDiagramRenderer(ArchitectureDiagram);
 
 // Register cost estimate component — scans generated artifacts for cost breakdown
 registerComponent('costEstimate', CostEstimateComponent);
+
+// Register dev environment component — opens repo in VS Code / vscode.dev / Codespaces
+registerComponent('devEnvironment', DevEnvironmentCard);
 
 // Override codeBlock to render as compact file chip — full code goes to file viewer
 registerComponent('codeBlock', CompactCodeBlock);
