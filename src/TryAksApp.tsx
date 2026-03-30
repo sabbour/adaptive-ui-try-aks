@@ -1854,7 +1854,7 @@ export function TryAksApp() {
         selectedFileId: resolvedFileId,
         onSelectFile: (id: string | null) => { setSelectedFileId(id); if (id) setMobileTab('files'); },
         onCreatePR: handleCreatePR,
-        collapsed: sidebarCollapsed,
+        collapsed: mobileTab === 'sessions' ? false : sidebarCollapsed,
         onToggleCollapse: setSidebarCollapsed,
         fileTreeMode: true,
       })

@@ -402,8 +402,14 @@ a:hover {
   .try-aks-mobile-active {
     display: flex !important;
     width: 100% !important;
-    flex: 1 !important;
+    flex: 1 1 100% !important;
     border-right: none !important;
+    overflow: auto !important;
+  }
+
+  /* Sidebar needs full width when active on mobile */
+  .try-aks-sidebar.try-aks-mobile-active {
+    flex-direction: column !important;
   }
 
   /* Chat panel fills the screen when active */
@@ -443,7 +449,19 @@ a:hover {
   .try-aks-file-viewer > div:first-child {
     flex-wrap: wrap;
     gap: 6px;
-    padding: 8px 12px !important;
+    padding: 6px 8px !important;
+  }
+
+  /* Compact the FileViewer header on mobile */
+  .try-aks-file-viewer div[style*="padding: 10px 16px"] {
+    padding: 6px 10px !important;
+  }
+  .try-aks-file-viewer span[style*="font-size: 16px"] {
+    font-size: 13px !important;
+  }
+  .try-aks-file-viewer span[style*="font-size: 14px"][style*="text-transform: uppercase"] {
+    font-size: 10px !important;
+    padding: 1px 6px !important;
   }
 
   /* Monaco editor container needs explicit height on mobile */
