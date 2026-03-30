@@ -416,9 +416,35 @@ a:hover {
     flex-direction: column !important;
   }
 
-  /* Show the bottom tab bar */
+  /* Show the bottom tab bar — fixed to viewport bottom */
   .try-aks-mobile-tabs {
     display: flex !important;
+    position: fixed !important;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background-color: #ffffff;
+    border-top: 1px solid #e1dfdd;
+  }
+
+  /* Leave space for the fixed tab bar */
+  #root > div {
+    padding-bottom: 42px;
+  }
+
+  /* File viewer fills available space on mobile */
+  .try-aks-file-viewer > div {
+    min-height: 0;
+    flex: 1;
+  }
+
+  /* Monaco editor container needs explicit height on mobile */
+  .try-aks-file-viewer .monaco-editor,
+  .try-aks-file-viewer [data-keybinding-context],
+  .try-aks-file-viewer .overflow-guard {
+    height: 100% !important;
+    min-height: 300px;
   }
 
   /* Improve touch targets — exclude small icon buttons and carousel dots */

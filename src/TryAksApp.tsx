@@ -1997,9 +1997,6 @@ export function TryAksApp() {
       className: 'try-aks-mobile-tabs',
       style: {
         display: 'none', // shown by media query
-        borderTop: '1px solid #e1dfdd',
-        backgroundColor: '#ffffff',
-        flexShrink: 0,
       } as React.CSSProperties,
     },
       React.createElement('button', {
