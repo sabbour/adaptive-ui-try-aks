@@ -423,8 +423,8 @@ a:hover {
     display: flex !important;
   }
 
-  /* Improve touch targets — exclude small icon buttons (settings gear, etc.) */
-  button:not(.adaptive-settings-wrapper button) {
+  /* Improve touch targets — exclude small icon buttons and carousel dots */
+  button:not(.adaptive-settings-wrapper button):not([aria-label^="Go to idea"]) {
     min-height: 40px;
   }
 
