@@ -1593,6 +1593,7 @@ export function TryAksApp() {
   const [sidebarWidth, setSidebarWidth] = useState(240);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [chatWidth, setChatWidth] = useState(480);
+  const [mobileTab, setMobileTab] = useState<'chat' | 'files'>('chat');
 
   const handleSidebarResize = useCallback((delta: number) => {
     setSidebarWidth((w) => Math.max(160, Math.min(400, w + delta)));
@@ -1806,9 +1807,15 @@ export function TryAksApp() {
 
   return React.createElement('div', {
     style: {
-      display: 'flex', height: '100%', width: '100%', overflow: 'hidden',
+      display: 'flex', flexDirection: 'column' as const, height: '100%', width: '100%', overflow: 'hidden',
     } as React.CSSProperties,
   },
+    // Main content area
+    React.createElement('div', {
+      style: {
+        display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden',
+      } as React.CSSProperties,
+    },
     // Left: Sessions sidebar with folder tree
     React.createElement('div', {
       className: 'try-aks-sidebar',
@@ -1839,7 +1846,7 @@ export function TryAksApp() {
 
     // Center-left: Chat
     React.createElement('div', {
-      className: 'try-aks-chat',
+      className: 'try-aks-chat' + (mobileTab === 'chat' ? ' try-aks-mobile-active' : ' try-aks-mobile-hidden'),
       style: {
         width: chatWidth + 'px', flexShrink: 0, height: '100%',
         overflow: 'hidden', display: 'flex', flexDirection: 'column',
@@ -1874,7 +1881,7 @@ export function TryAksApp() {
 
     // Center-right: File viewer / Architecture diagram
     React.createElement('div', {
-      className: 'try-aks-file-viewer',
+      className: 'try-aks-file-viewer' + (mobileTab === 'files' ? ' try-aks-mobile-active' : ' try-aks-mobile-hidden'),
       style: { flex: 1, minWidth: 0, height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' } as React.CSSProperties,
     },
       // File viewer toolbar
@@ -1961,6 +1968,41 @@ export function TryAksApp() {
             })
           : React.createElement(FileViewerPlaceholder)
       )
+    )
+    ), // close main content area
+
+    // Mobile bottom tab bar (visible only on small screens via CSS)
+    React.createElement('div', {
+      className: 'try-aks-mobile-tabs',
+      style: {
+        display: 'none', // shown by media query
+        borderTop: '1px solid #e1dfdd',
+        backgroundColor: '#ffffff',
+        flexShrink: 0,
+      } as React.CSSProperties,
+    },
+      React.createElement('button', {
+        onClick: () => setMobileTab('chat'),
+        style: {
+          flex: 1, padding: '10px 0', border: 'none', cursor: 'pointer',
+          backgroundColor: 'transparent',
+          color: mobileTab === 'chat' ? '#0078d4' : '#646464',
+          fontSize: '12px', fontWeight: mobileTab === 'chat' ? 600 : 400,
+          borderTop: mobileTab === 'chat' ? '2px solid #0078d4' : '2px solid transparent',
+          fontFamily: "'Segoe UI', system-ui, sans-serif",
+        } as React.CSSProperties,
+      }, 'Chat'),
+      React.createElement('button', {
+        onClick: () => setMobileTab('files'),
+        style: {
+          flex: 1, padding: '10px 0', border: 'none', cursor: 'pointer',
+          backgroundColor: 'transparent',
+          color: mobileTab === 'files' ? '#0078d4' : '#646464',
+          fontSize: '12px', fontWeight: mobileTab === 'files' ? 600 : 400,
+          borderTop: mobileTab === 'files' ? '2px solid #0078d4' : '2px solid transparent',
+          fontFamily: "'Segoe UI', system-ui, sans-serif",
+        } as React.CSSProperties,
+      }, 'Files')
     )
   );
 }

@@ -390,18 +390,37 @@ a:hover {
     min-height: 100dvh;
   }
 
-  /* Hide sidebar and file viewer on small screens — chat only */
+  /* Hide sidebar and resize handles on small screens */
   .try-aks-sidebar,
-  .try-aks-resize-handle,
-  .try-aks-file-viewer {
+  .try-aks-resize-handle {
     display: none !important;
   }
 
-  /* Chat panel fills the screen */
-  .try-aks-chat {
+  /* On mobile, panels are toggled by the tab bar — hide inactive panel */
+  .try-aks-mobile-hidden {
+    display: none !important;
+  }
+
+  .try-aks-mobile-active {
+    display: flex !important;
     width: 100% !important;
     flex: 1 !important;
     border-right: none !important;
+  }
+
+  /* Chat panel fills the screen when active */
+  .try-aks-chat {
+    flex-direction: column !important;
+  }
+
+  /* File viewer fills the screen when active */
+  .try-aks-file-viewer {
+    flex-direction: column !important;
+  }
+
+  /* Show the bottom tab bar */
+  .try-aks-mobile-tabs {
+    display: flex !important;
   }
 
   /* Improve touch targets — exclude small icon buttons (settings gear, etc.) */
