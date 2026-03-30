@@ -1175,18 +1175,24 @@ function IdeaCarousel({ onSelect }: {
     setProgress(0);
   }, []);
 
-  // Inject keyframes once
+  // Inject keyframes once (or update if stale from a previous version)
   useEffect(() => {
-    if (document.getElementById('idea-carousel-styles')) return;
-    const style = document.createElement('style');
-    style.id = 'idea-carousel-styles';
-    style.textContent = `
+    const content = `
       @keyframes ideaSlideIn {
         from { opacity: 0; transform: translateY(8px); }
         to   { opacity: 1; transform: translateY(0); }
       }
+      @keyframes ideaSpinner {
+        to { transform: rotate(360deg); }
+      }
     `;
-    document.head.appendChild(style);
+    let style = document.getElementById('idea-carousel-styles') as HTMLStyleElement | null;
+    if (!style) {
+      style = document.createElement('style');
+      style.id = 'idea-carousel-styles';
+      document.head.appendChild(style);
+    }
+    style.textContent = content;
   }, []);
 
   const idea = ideas[activeIndex];
