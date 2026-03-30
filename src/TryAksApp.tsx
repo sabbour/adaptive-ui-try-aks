@@ -1371,6 +1371,9 @@ function LandingPage({ onSelect, sessions, onResumeSession }: {
         },
       }, 'Get your app running in production in minutes. Pick a starting point and let the AI guide handle the rest.'),
 
+      // LLM-generated idea carousel
+      React.createElement(IdeaCarousel, { onSelect }),
+
       // Cards
       React.createElement('div', {
         style: {
@@ -1446,10 +1449,7 @@ function LandingPage({ onSelect, sessions, onResumeSession }: {
             },
           }, 'Get started \u2192')
         )
-      ),
-
-      // LLM-generated idea carousel
-      React.createElement(IdeaCarousel, { onSelect })
+      )
     )
   );
 }
