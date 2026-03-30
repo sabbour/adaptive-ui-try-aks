@@ -389,8 +389,7 @@ a:hover {
     overflow: hidden;
   }
 
-  /* Hide sidebar and resize handles on small screens */
-  .try-aks-sidebar,
+  /* Hide resize handles on small screens */
   .try-aks-resize-handle {
     display: none !important;
   }

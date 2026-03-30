@@ -1612,7 +1612,7 @@ export function TryAksApp() {
   const [sidebarWidth, setSidebarWidth] = useState(240);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [chatWidth, setChatWidth] = useState(480);
-  const [mobileTab, setMobileTab] = useState<'chat' | 'files'>('chat');
+  const [mobileTab, setMobileTab] = useState<'chat' | 'files' | 'sessions'>('chat');
 
   const handleSidebarResize = useCallback((delta: number) => {
     setSidebarWidth((w) => Math.max(160, Math.min(400, w + delta)));
@@ -1712,6 +1712,7 @@ export function TryAksApp() {
     setSessionId(newId);
     setDeploymentTrack(null);
     setLinkedRepo(null);
+    setMobileTab('chat');
     try { localStorage.setItem('adaptive-ui-active-session-try-aks', newId); } catch {}
     saveSession(newId, 'New session', []);
     setSelectedFileId(null);
@@ -1724,6 +1725,7 @@ export function TryAksApp() {
     setSelectedFileId(null);
     loadArtifactsForSession(id);
     restoreLinkedRepo(id);
+    setMobileTab('chat');
     try { localStorage.setItem('adaptive-ui-active-session-try-aks', id); } catch {}
   }, [sessionId, restoreLinkedRepo]);
 
@@ -1837,7 +1839,7 @@ export function TryAksApp() {
     },
     // Left: Sessions sidebar with folder tree
     React.createElement('div', {
-      className: 'try-aks-sidebar',
+      className: 'try-aks-sidebar' + (mobileTab === 'sessions' ? ' try-aks-mobile-active' : ' try-aks-mobile-hidden'),
       style: {
         width: sidebarCollapsed ? '36px' : sidebarWidth + 'px',
         flexShrink: 0, height: '100%', overflow: 'hidden',
@@ -2021,7 +2023,18 @@ export function TryAksApp() {
           borderTop: mobileTab === 'files' ? '2px solid #0078d4' : '2px solid transparent',
           fontFamily: "'Segoe UI', system-ui, sans-serif",
         } as React.CSSProperties,
-      }, 'Files')
+      }, 'Files'),
+      React.createElement('button', {
+        onClick: () => setMobileTab('sessions'),
+        style: {
+          flex: 1, padding: '10px 0', border: 'none', cursor: 'pointer',
+          backgroundColor: 'transparent',
+          color: mobileTab === 'sessions' ? '#0078d4' : '#646464',
+          fontSize: '12px', fontWeight: mobileTab === 'sessions' ? 600 : 400,
+          borderTop: mobileTab === 'sessions' ? '2px solid #0078d4' : '2px solid transparent',
+          fontFamily: "'Segoe UI', system-ui, sans-serif",
+        } as React.CSSProperties,
+      }, 'Sessions')
     )
   );
 }
