@@ -1852,7 +1852,7 @@ export function TryAksApp() {
         onNewSession: handleNewSession,
         onDeleteSession: handleDeleteSession,
         selectedFileId: resolvedFileId,
-        onSelectFile: setSelectedFileId,
+        onSelectFile: (id: string | null) => { setSelectedFileId(id); if (id) setMobileTab('files'); },
         onCreatePR: handleCreatePR,
         collapsed: sidebarCollapsed,
         onToggleCollapse: setSidebarCollapsed,

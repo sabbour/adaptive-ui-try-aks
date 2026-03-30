@@ -439,6 +439,13 @@ a:hover {
     flex: 1;
   }
 
+  /* File viewer toolbar wraps on mobile */
+  .try-aks-file-viewer > div:first-child {
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 12px !important;
+  }
+
   /* Monaco editor container needs explicit height on mobile */
   .try-aks-file-viewer .monaco-editor,
   .try-aks-file-viewer [data-keybinding-context],
