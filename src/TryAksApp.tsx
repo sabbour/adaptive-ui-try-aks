@@ -1104,6 +1104,7 @@ Example: [{"label":"Recipe Share Hub","description":"Social recipe platform with
 
 Return ONLY the JSON array, no markdown fences, no explanation.`,
     }],
+    model: 'gpt-4o',
     max_completion_tokens: 2048,
     temperature: 1.0,
   });
@@ -1214,7 +1215,7 @@ function IdeaCarousel({ onSelect }: {
       } as React.CSSProperties,
     },
       React.createElement('div', {
-        style: {
+        style: { Ok I deployed gpt- 5.4 - nano.Add it to the proxy. 
           background: '#ffffff', border: '1px solid #e1dfdd',
           borderRadius: '2px', padding: '16px 24px',
           minWidth: '340px', maxWidth: '480px',
