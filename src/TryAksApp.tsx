@@ -1089,14 +1089,10 @@ let cachedIdeas: AppIdea[] | null = null;
 
 async function fetchIdeasFromLLM(): Promise<AppIdea[]> {
   if (cachedIdeas) return cachedIdeas;
-  try {
-    const resp = await fetch('/api/llm-proxy', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messages: [{
-          role: 'user',
-          content: `Generate 15 diverse and creative app project ideas that a developer could deploy to production on AKS (Azure Kubernetes Service). Mix web apps, APIs, AI/ML apps, and data services. Be creative and specific.
+  const body = JSON.stringify({
+    messages: [{
+      role: 'user',
+      content: `Generate 15 diverse and creative app project ideas that a developer could deploy to production on AKS (Azure Kubernetes Service). Mix web apps, APIs, AI/ML apps, and data services. Be creative and specific.
 
 Return ONLY a JSON array of objects with these fields:
 - "label": short name (2-4 words)
@@ -1107,30 +1103,42 @@ Return ONLY a JSON array of objects with these fields:
 Example: [{"label":"Recipe Share Hub","description":"Social recipe platform with image uploads and ratings","prompt":"I want to ship a recipe sharing web app with image uploads and user ratings. No existing repo, starting from scratch.","track":"web-app"}]
 
 Return ONLY the JSON array, no markdown fences, no explanation.`,
-        }],
-        max_completion_tokens: 2048,
-        temperature: 1.0,
-      }),
-    });
-    if (!resp.ok) return FALLBACK_IDEAS;
-    const data = await resp.json();
-    const content = data.choices?.[0]?.message?.content?.trim();
-    if (!content) return FALLBACK_IDEAS;
-    const cleaned = content.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
-    const parsed = JSON.parse(cleaned);
-    if (!Array.isArray(parsed) || parsed.length === 0) return FALLBACK_IDEAS;
-    const ideas: AppIdea[] = parsed.slice(0, 15).map((item: Record<string, unknown>) => ({
-      label: String(item.label || ''),
-      description: String(item.description || ''),
-      prompt: String(item.prompt || ''),
-      track: item.track === 'agentic-app' ? 'agentic-app' as const : 'web-app' as const,
-    })).filter((i: AppIdea) => i.label && i.prompt);
-    if (ideas.length < 5) return FALLBACK_IDEAS;
-    cachedIdeas = ideas;
-    return ideas;
-  } catch {
-    return FALLBACK_IDEAS;
+    }],
+    max_completion_tokens: 2048,
+    temperature: 1.0,
+  });
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      if (attempt > 0) await new Promise((r) => setTimeout(r, 1000 * attempt));
+      const resp = await fetch('/api/llm-proxy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+      });
+      if (resp.status >= 500) continue; // retry on server errors
+      if (!resp.ok) return FALLBACK_IDEAS;
+      const data = await resp.json();
+      const content = data.choices?.[0]?.message?.content?.trim();
+      if (!content) return FALLBACK_IDEAS;
+      const cleaned = content.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+      const parsed = JSON.parse(cleaned);
+      if (!Array.isArray(parsed) || parsed.length === 0) return FALLBACK_IDEAS;
+      const ideas: AppIdea[] = parsed.slice(0, 15).map((item: Record<string, unknown>) => ({
+        label: String(item.label || ''),
+        description: String(item.description || ''),
+        prompt: String(item.prompt || ''),
+        track: item.track === 'agentic-app' ? 'agentic-app' as const : 'web-app' as const,
+      })).filter((i: AppIdea) => i.label && i.prompt);
+      if (ideas.length < 5) return FALLBACK_IDEAS;
+      cachedIdeas = ideas;
+      return ideas;
+    } catch {
+      if (attempt === 2) return FALLBACK_IDEAS;
+      // retry
+    }
   }
+  return FALLBACK_IDEAS;
 }
 
 const IDEA_DURATION = 5000;
