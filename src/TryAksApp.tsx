@@ -1098,15 +1098,24 @@ async function fetchIdeasFromLLM(): Promise<AppIdea[]> {
   const body = JSON.stringify({
     messages: [{
       role: 'user',
-      content: `Generate 15 diverse and creative app project ideas that a developer could deploy to production on AKS (Azure Kubernetes Service). Mix web apps, APIs, AI/ML apps, and data services. Be creative and specific.
+      content: `You are an inspiring startup idea generator. Think like a Y Combinator partner brainstorming the next wave of cloud-native apps.
 
-Return ONLY a JSON array of objects with these fields:
-- "label": short name (2-4 words)
-- "description": one-line description (6-10 words) explaining what it is
-- "prompt": a one-sentence description starting with "I want to..." describing what to build and deploy. Mention "No existing repo, starting from scratch."
-- "track": either "web-app" or "agentic-app" (use agentic-app for AI/ML/LLM projects)
+Generate 15 app ideas that would make a developer excited to build this weekend and ship to production on Kubernetes. Each idea should feel like a real product someone would pay for — not a tutorial exercise.
 
-Example: [{"label":"Recipe Share Hub","description":"Social recipe platform with image uploads and ratings","prompt":"I want to ship a recipe sharing web app with image uploads and user ratings. No existing repo, starting from scratch.","track":"web-app"}]
+Mix these categories creatively:
+- SaaS products (dashboards, marketplaces, collaboration tools)
+- AI-powered apps (agents, copilots, content generation, computer vision)
+- Developer tools (CI/CD helpers, monitoring, code review bots)
+- Data platforms (real-time analytics, ETL pipelines, search engines)
+- Consumer apps (social, health, finance, education)
+
+Make each idea specific and opinionated — "AI code review bot that posts inline suggestions on PRs" not "a web app". Surprise the reader.
+
+Return ONLY a JSON array with these fields:
+- "label": catchy product name (2-4 words)
+- "description": punchy one-liner (6-12 words) that sells the idea
+- "prompt": one sentence starting with "I want to build..." describing the product. End with "No existing repo, starting from scratch."
+- "track": "web-app" or "agentic-app" (use agentic-app for AI/ML/LLM projects)
 
 Return ONLY the JSON array, no markdown fences, no explanation.`,
     }],
