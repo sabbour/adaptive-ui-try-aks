@@ -384,9 +384,10 @@ a:hover {
 /* ─── Mobile / Small Screen ─── */
 @media (max-width: 768px) {
   body, #root {
-    height: 100vh;
-    height: 100dvh;
-    overflow: hidden;
+    min-height: 100vh;
+    min-height: 100dvh;
+    height: auto;
+    overflow: auto;
   }
 
   /* Hide resize handles on small screens */

@@ -1416,7 +1416,7 @@ function LandingPage({ onSelect, sessions, onResumeSession }: {
           fontSize: '13px', color: '#646464', margin: '0 0 32px',
           lineHeight: '20px',
         },
-      }, 'Get your app running in production in minutes. Pick a starting point and let the AI guide handle the rest.'),
+      }, 'Get your app running in minutes. Pick a starting point and the AI guide willhandle the rest.'),
 
       // LLM-generated idea carousel
       React.createElement(IdeaCarousel, { onSelect }),
