@@ -13,6 +13,12 @@ import { validateAllManifests, fixAllManifests } from './safeguards-checker';
 import { validateK8sManifest } from './k8s-validator';
 import type { SafeguardViolation, SafeguardFix } from './k8s-validator';
 
+// Build info injected by Vite at build time
+declare const __GIT_SHA__: string;
+declare const __BUILD_TIME__: string;
+const GIT_SHA = typeof __GIT_SHA__ !== 'undefined' ? __GIT_SHA__ : 'dev';
+const BUILD_TIME = typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : new Date().toISOString();
+
 // Pack scope guard — packs are registered in main.tsx, this just sets the scope
 function ensureTryAksPacks() {
   if (getActivePackScope() === 'try-aks') return;
@@ -1479,7 +1485,15 @@ function LandingPage({ onSelect, sessions, onResumeSession }: {
             },
           }, 'Get started \u2192')
         )
-      )
+      ),
+
+      // Build version indicator
+      React.createElement('div', {
+        style: {
+          marginTop: '32px', fontSize: '11px', color: '#c8c6c4',
+          fontFamily: "'Segoe UI', system-ui, sans-serif",
+        },
+      }, GIT_SHA + ' \u00b7 ' + new Date(BUILD_TIME).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }))
     )
   );
 }
