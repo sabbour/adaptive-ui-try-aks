@@ -1495,7 +1495,17 @@ function LandingPage({ onSelect, sessions, onResumeSession }: {
           marginTop: '32px', fontSize: '11px', color: '#c8c6c4',
           fontFamily: "'Segoe UI', system-ui, sans-serif",
         },
-      }, GIT_SHA + ' \u00b7 ' + new Date(BUILD_TIME).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }))
+      },
+        React.createElement('a', {
+          href: 'https://github.com/sabbour/adaptive-ui-try-aks/commit/' + GIT_SHA,
+          target: '_blank',
+          rel: 'noopener noreferrer',
+          style: { color: '#c8c6c4', textDecoration: 'none' },
+          onMouseEnter: (e: React.MouseEvent<HTMLAnchorElement>) => { e.currentTarget.style.color = '#0078d4'; },
+          onMouseLeave: (e: React.MouseEvent<HTMLAnchorElement>) => { e.currentTarget.style.color = '#c8c6c4'; },
+        }, GIT_SHA),
+        ' \u00b7 ' + new Date(BUILD_TIME).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+      )
     )
   );
 }
