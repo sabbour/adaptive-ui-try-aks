@@ -1185,6 +1185,30 @@ function IdeaCarousel({ onSelect }: {
 
   const idea = ideas[activeIndex];
 
+  // Show a placeholder while loading from the LLM
+  if (!loaded) {
+    return React.createElement('div', {
+      style: {
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        gap: '16px', marginTop: '28px',
+      } as React.CSSProperties,
+    },
+      React.createElement('div', {
+        style: {
+          background: '#ffffff', border: '1px solid #e1dfdd',
+          borderRadius: '2px', padding: '16px 24px',
+          minWidth: '340px', maxWidth: '480px',
+          textAlign: 'center' as const,
+          fontFamily: "'Segoe UI', system-ui, sans-serif",
+        } as React.CSSProperties,
+      },
+        React.createElement('div', {
+          style: { fontSize: '13px', color: '#a19f9d' },
+        }, 'Generating ideas\u2026')
+      )
+    );
+  }
+
   return React.createElement('div', {
     style: {
       display: 'flex', flexDirection: 'column', alignItems: 'center',
