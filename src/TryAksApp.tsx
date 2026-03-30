@@ -2000,6 +2000,18 @@ export function TryAksApp() {
       } as React.CSSProperties,
     },
       React.createElement('button', {
+        onClick: handleNewSession,
+        'aria-label': 'Home',
+        style: {
+          padding: '10px 14px', border: 'none', cursor: 'pointer',
+          backgroundColor: 'transparent',
+          color: '#646464',
+          fontSize: '14px',
+          borderTop: '2px solid transparent',
+          fontFamily: "'Segoe UI', system-ui, sans-serif",
+        } as React.CSSProperties,
+      }, '\u2302'),
+      React.createElement('button', {
         onClick: () => setMobileTab('chat'),
         style: {
           flex: 1, padding: '10px 0', border: 'none', cursor: 'pointer',
