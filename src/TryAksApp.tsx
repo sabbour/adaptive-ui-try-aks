@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useSyncExternalStore, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useRef, useSyncExternalStore, useEffect } from 'react';
 import { AdaptiveApp, getActivePackScope, setActivePackScope, SessionsSidebar, FileViewer, FileViewerPlaceholder, ResizeHandle, generateSessionId, saveSession, deleteSession, getSessions, setSessionScope, upsertArtifact, getArtifacts, subscribeArtifacts, loadArtifactsForSession, saveArtifactsForSession, deleteArtifactsForSession, setArtifactsScope, useAdaptive } from '@sabbour/adaptive-ui-core';
 import type { AdaptiveUISpec } from '@sabbour/adaptive-ui-core';
 import iconGlobe from '@sabbour/adaptive-ui-core/icons/fluent/globe.svg?url';
@@ -1055,21 +1055,27 @@ interface LandingSession {
 
 interface AppIdea {
   label: string;
+  description: string;
   prompt: string;
   track: 'web-app' | 'agentic-app';
 }
 
 const FALLBACK_IDEAS: AppIdea[] = [
-  { label: 'Next.js app', prompt: 'I want to ship a Next.js web app to production. No existing repo, start from scratch. No database needed yet.', track: 'web-app' },
-  { label: 'Python FastAPI', prompt: 'I want to ship a Python FastAPI backend to production. No existing repo, starting from scratch. No database for now.', track: 'web-app' },
-  { label: 'Spring Boot + Postgres', prompt: 'I want to ship a Spring Boot (Java) app with a PostgreSQL database. No existing repo, start from scratch.', track: 'web-app' },
-  { label: 'AI Agent with RAG', prompt: 'I want to build and deploy an AI agent with RAG. No existing repo, starting from scratch. Needs a vector search database.', track: 'agentic-app' },
-  { label: 'LangChain chatbot', prompt: 'I want to build a LangChain Python chatbot with conversation history. No existing repo, starting from scratch.', track: 'agentic-app' },
-  { label: 'Go service', prompt: 'I want to ship a Go service to production. No existing repo, starting from scratch. No database needed.', track: 'web-app' },
-  { label: 'Django + Redis', prompt: 'I want to ship a Django web app with Redis for caching. No existing repo, start from scratch.', track: 'web-app' },
-  { label: 'Express.js API', prompt: 'I want to ship an Express.js REST API to production. No existing repo, starting from scratch. No database for now.', track: 'web-app' },
-  { label: 'ML model serving', prompt: 'I want to deploy a machine learning model as a REST API with GPU inference. No existing repo, starting from scratch.', track: 'agentic-app' },
-  { label: 'Rust microservice', prompt: 'I want to ship a Rust microservice to production. No existing repo, starting from scratch. No database needed.', track: 'web-app' },
+  { label: 'Next.js app', description: 'Full-stack React framework with server-side rendering', prompt: 'I want to ship a Next.js web app to production. No existing repo, start from scratch. No database needed yet.', track: 'web-app' },
+  { label: 'Python FastAPI', description: 'High-performance async Python REST API', prompt: 'I want to ship a Python FastAPI backend to production. No existing repo, starting from scratch. No database for now.', track: 'web-app' },
+  { label: 'Spring Boot + Postgres', description: 'Enterprise Java backend with relational storage', prompt: 'I want to ship a Spring Boot (Java) app with a PostgreSQL database. No existing repo, start from scratch.', track: 'web-app' },
+  { label: 'AI Agent with RAG', description: 'Retrieval-augmented generation agent with vector search', prompt: 'I want to build and deploy an AI agent with RAG. No existing repo, starting from scratch. Needs a vector search database.', track: 'agentic-app' },
+  { label: 'LangChain chatbot', description: 'Conversational AI with memory and tool use', prompt: 'I want to build a LangChain Python chatbot with conversation history. No existing repo, starting from scratch.', track: 'agentic-app' },
+  { label: 'Go microservice', description: 'Lightweight, compiled service with minimal footprint', prompt: 'I want to ship a Go service to production. No existing repo, starting from scratch. No database needed.', track: 'web-app' },
+  { label: 'Django + Redis', description: 'Python web framework with in-memory caching layer', prompt: 'I want to ship a Django web app with Redis for caching. No existing repo, start from scratch.', track: 'web-app' },
+  { label: 'Express.js API', description: 'Node.js REST API with middleware ecosystem', prompt: 'I want to ship an Express.js REST API to production. No existing repo, starting from scratch. No database for now.', track: 'web-app' },
+  { label: 'ML model serving', description: 'GPU-accelerated model inference endpoint', prompt: 'I want to deploy a machine learning model as a REST API with GPU inference. No existing repo, starting from scratch.', track: 'agentic-app' },
+  { label: 'Rust microservice', description: 'Memory-safe systems language for high-throughput APIs', prompt: 'I want to ship a Rust microservice to production. No existing repo, starting from scratch. No database needed.', track: 'web-app' },
+  { label: 'Real-time dashboard', description: 'WebSocket-powered live data visualization app', prompt: 'I want to build a real-time dashboard with WebSocket updates. No existing repo, starting from scratch. Needs a database.', track: 'web-app' },
+  { label: 'Document QA bot', description: 'Upload documents and ask questions with AI answers', prompt: 'I want to build a document question-answering bot that processes uploaded PDFs. No existing repo, starting from scratch.', track: 'agentic-app' },
+  { label: 'E-commerce API', description: 'Product catalog, cart, and checkout REST service', prompt: 'I want to build an e-commerce backend API with product catalog and orders. No existing repo, starting from scratch. Needs a database.', track: 'web-app' },
+  { label: 'Multi-agent system', description: 'Orchestrated AI agents that collaborate on complex tasks', prompt: 'I want to build a multi-agent AI system where specialized agents collaborate. No existing repo, starting from scratch.', track: 'agentic-app' },
+  { label: 'Event-driven pipeline', description: 'Message queue consumer with async processing', prompt: 'I want to build an event-driven data processing pipeline. No existing repo, starting from scratch. Needs a message queue.', track: 'web-app' },
 ];
 
 // Module-level cache so ideas survive re-renders but not full page reloads
@@ -1084,18 +1090,19 @@ async function fetchIdeasFromLLM(): Promise<AppIdea[]> {
       body: JSON.stringify({
         messages: [{
           role: 'user',
-          content: `Generate 10 diverse and creative app project ideas that a developer could deploy to production on AKS (Azure Kubernetes Service). Mix web apps, APIs, AI/ML apps, and data services.
+          content: `Generate 15 diverse and creative app project ideas that a developer could deploy to production on AKS (Azure Kubernetes Service). Mix web apps, APIs, AI/ML apps, and data services. Be creative and specific.
 
 Return ONLY a JSON array of objects with these fields:
 - "label": short name (2-4 words)
+- "description": one-line description (6-10 words) explaining what it is
 - "prompt": a one-sentence description starting with "I want to..." describing what to build and deploy. Mention "No existing repo, starting from scratch."
 - "track": either "web-app" or "agentic-app" (use agentic-app for AI/ML/LLM projects)
 
-Example: [{"label":"Next.js blog","prompt":"I want to ship a Next.js blog with markdown support to production. No existing repo, starting from scratch.","track":"web-app"}]
+Example: [{"label":"Recipe Share Hub","description":"Social recipe platform with image uploads and ratings","prompt":"I want to ship a recipe sharing web app with image uploads and user ratings. No existing repo, starting from scratch.","track":"web-app"}]
 
 Return ONLY the JSON array, no markdown fences, no explanation.`,
         }],
-        max_completion_tokens: 1024,
+        max_completion_tokens: 2048,
         temperature: 1.0,
       }),
     });
@@ -1103,12 +1110,12 @@ Return ONLY the JSON array, no markdown fences, no explanation.`,
     const data = await resp.json();
     const content = data.choices?.[0]?.message?.content?.trim();
     if (!content) return FALLBACK_IDEAS;
-    // Strip markdown fences if present
     const cleaned = content.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
     const parsed = JSON.parse(cleaned);
     if (!Array.isArray(parsed) || parsed.length === 0) return FALLBACK_IDEAS;
-    const ideas: AppIdea[] = parsed.slice(0, 10).map((item: Record<string, unknown>) => ({
+    const ideas: AppIdea[] = parsed.slice(0, 15).map((item: Record<string, unknown>) => ({
       label: String(item.label || ''),
+      description: String(item.description || ''),
       prompt: String(item.prompt || ''),
       track: item.track === 'agentic-app' ? 'agentic-app' as const : 'web-app' as const,
     })).filter((i: AppIdea) => i.label && i.prompt);
@@ -1120,17 +1127,18 @@ Return ONLY the JSON array, no markdown fences, no explanation.`,
   }
 }
 
-const CAROUSEL_INTERVAL = 3000;
+const IDEA_DURATION = 5000;
+const TICK_INTERVAL = 50;
 
 function IdeaCarousel({ onSelect }: {
   onSelect: (track: 'web-app' | 'agentic-app', quickPrompt: string) => void;
 }) {
   const [ideas, setIdeas] = useState<AppIdea[]>(cachedIdeas || FALLBACK_IDEAS);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [progress, setProgress] = useState(0); // 0..1
   const [paused, setPaused] = useState(false);
   const [loaded, setLoaded] = useState(!!cachedIdeas);
 
-  // Fetch ideas from LLM on mount
   useEffect(() => {
     if (cachedIdeas) { setLoaded(true); return; }
     fetchIdeasFromLLM().then((result) => {
@@ -1139,88 +1147,115 @@ function IdeaCarousel({ onSelect }: {
     });
   }, []);
 
-  // Auto-rotate
+  // Countdown timer with visible progress
   useEffect(() => {
     if (paused || !loaded) return;
     const timer = setInterval(() => {
-      setActiveIndex((i) => (i + 1) % ideas.length);
-    }, CAROUSEL_INTERVAL);
+      setProgress((p) => {
+        const next = p + TICK_INTERVAL / IDEA_DURATION;
+        if (next >= 1) {
+          setActiveIndex((i) => (i + 1) % ideas.length);
+          return 0;
+        }
+        return next;
+      });
+    }, TICK_INTERVAL);
     return () => clearInterval(timer);
   }, [paused, loaded, ideas.length]);
 
-  // CSS keyframes (injected once)
+  // Reset progress when user clicks a dot
+  const goToIdea = useCallback((i: number) => {
+    setActiveIndex(i);
+    setProgress(0);
+  }, []);
+
+  // Inject keyframes once
   useEffect(() => {
     if (document.getElementById('idea-carousel-styles')) return;
     const style = document.createElement('style');
     style.id = 'idea-carousel-styles';
     style.textContent = `
-      @keyframes ideaFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-      .idea-chip { transition: border-color 0.2s, color 0.2s, background 0.2s, box-shadow 0.2s; }
-      .idea-chip:hover { border-color: #0078d4 !important; color: #0078d4 !important; background: #f0f6ff !important; }
+      @keyframes ideaSlideIn {
+        from { opacity: 0; transform: translateY(8px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
     `;
     document.head.appendChild(style);
   }, []);
 
-  const visibleCount = Math.min(ideas.length, 5);
-  const visibleIdeas = useMemo(() => {
-    const result: Array<AppIdea & { idx: number }> = [];
-    for (let i = 0; i < visibleCount; i++) {
-      const idx = (activeIndex + i) % ideas.length;
-      result.push({ ...ideas[idx], idx });
-    }
-    return result;
-  }, [activeIndex, ideas, visibleCount]);
+  const idea = ideas[activeIndex];
 
   return React.createElement('div', {
     style: {
       display: 'flex', flexDirection: 'column', alignItems: 'center',
-      gap: '12px', marginTop: '24px',
+      gap: '16px', marginTop: '28px',
     } as React.CSSProperties,
     onMouseEnter: () => setPaused(true),
     onMouseLeave: () => setPaused(false),
   },
-    // Chip row
-    React.createElement('div', {
+    // Single idea card
+    React.createElement('button', {
+      key: activeIndex,
+      onClick: () => onSelect(idea.track, idea.prompt),
       style: {
-        display: 'flex', flexWrap: 'wrap', gap: '8px',
-        justifyContent: 'center', minHeight: '36px',
+        background: '#ffffff', border: '1px solid #e1dfdd',
+        borderRadius: '2px', padding: '16px 24px',
+        cursor: 'pointer', textAlign: 'center' as const,
+        minWidth: '340px', maxWidth: '480px',
+        position: 'relative' as const, overflow: 'hidden' as const,
+        fontFamily: "'Segoe UI', system-ui, sans-serif",
+        animation: 'ideaSlideIn 0.35s ease-out',
+        transition: 'border-color 0.2s, box-shadow 0.2s',
       } as React.CSSProperties,
+      onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.currentTarget.style.borderColor = '#0078d4';
+        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,120,212,0.12)';
+      },
+      onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.currentTarget.style.borderColor = '#e1dfdd';
+        e.currentTarget.style.boxShadow = 'none';
+      },
     },
-      ...visibleIdeas.map((idea) =>
-        React.createElement('button', {
-          key: idea.label + '-' + idea.idx,
-          className: 'idea-chip',
-          onClick: () => onSelect(idea.track, idea.prompt),
-          style: {
-            background: idea.idx === activeIndex ? '#f0f6ff' : '#ffffff',
-            border: idea.idx === activeIndex ? '1px solid #0078d4' : '1px solid #e1dfdd',
-            borderRadius: '2px', padding: '6px 14px',
-            fontSize: '12px',
-            color: idea.idx === activeIndex ? '#0078d4' : '#646464',
-            cursor: 'pointer',
-            fontFamily: "'Segoe UI', system-ui, sans-serif",
-            animation: 'ideaFadeIn 0.3s ease-out',
-            fontWeight: idea.idx === activeIndex ? 600 : 400,
-          } as React.CSSProperties,
-        }, idea.label)
-      )
+      // Countdown progress bar at top
+      React.createElement('div', {
+        style: {
+          position: 'absolute' as const, top: 0, left: 0,
+          height: '2px',
+          width: (progress * 100) + '%',
+          background: '#0078d4',
+          transition: paused ? 'none' : 'width 50ms linear',
+        } as React.CSSProperties,
+      }),
+      // Label
+      React.createElement('div', {
+        style: {
+          fontSize: '14px', fontWeight: 600, color: '#0078d4',
+          marginBottom: '4px',
+        },
+      }, idea.label),
+      // Description
+      React.createElement('div', {
+        style: {
+          fontSize: '12px', color: '#646464', lineHeight: '18px',
+        },
+      }, idea.description)
     ),
     // Progress dots
     React.createElement('div', {
-      style: { display: 'flex', gap: '4px' } as React.CSSProperties,
+      style: { display: 'flex', gap: '5px', alignItems: 'center' } as React.CSSProperties,
     },
       ...ideas.map((_: AppIdea, i: number) =>
         React.createElement('button', {
           key: i,
-          onClick: () => setActiveIndex(i),
+          onClick: () => goToIdea(i),
           style: {
-            width: i === activeIndex ? '16px' : '6px',
-            height: '6px',
-            borderRadius: '3px',
+            width: '6px', height: '6px',
+            borderRadius: '50%',
             border: 'none',
             background: i === activeIndex ? '#0078d4' : '#d2d0ce',
             cursor: 'pointer', padding: 0,
-            transition: 'width 0.3s, background 0.3s',
+            transition: 'background 0.2s, transform 0.2s',
+            transform: i === activeIndex ? 'scale(1.4)' : 'scale(1)',
           } as React.CSSProperties,
           'aria-label': 'Go to idea ' + (i + 1),
         })
