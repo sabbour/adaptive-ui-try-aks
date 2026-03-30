@@ -1196,7 +1196,7 @@ function IdeaCarousel({ onSelect }: {
     return React.createElement('div', {
       style: {
         display: 'flex', flexDirection: 'column', alignItems: 'center',
-        gap: '16px', marginTop: '28px',
+        gap: '16px', marginTop: '28px', marginBottom: '24px',
       } as React.CSSProperties,
     },
       React.createElement('div', {
@@ -1206,8 +1206,17 @@ function IdeaCarousel({ onSelect }: {
           minWidth: '340px', maxWidth: '480px',
           textAlign: 'center' as const,
           fontFamily: "'Segoe UI', system-ui, sans-serif",
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
         } as React.CSSProperties,
       },
+        React.createElement('div', {
+          style: {
+            width: '16px', height: '16px',
+            border: '2px solid #e1dfdd', borderTopColor: '#0078d4',
+            borderRadius: '50%',
+            animation: 'ideaSpinner 0.8s linear infinite',
+          } as React.CSSProperties,
+        }),
         React.createElement('div', {
           style: { fontSize: '13px', color: '#a19f9d' },
         }, 'Generating ideas\u2026')
@@ -1218,7 +1227,7 @@ function IdeaCarousel({ onSelect }: {
   return React.createElement('div', {
     style: {
       display: 'flex', flexDirection: 'column', alignItems: 'center',
-      gap: '16px', marginTop: '28px',
+      gap: '16px', marginTop: '28px', marginBottom: '24px',
     } as React.CSSProperties,
     onMouseEnter: () => setPaused(true),
     onMouseLeave: () => setPaused(false),
