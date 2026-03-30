@@ -1221,10 +1221,10 @@ function IdeaCarousel({ onSelect }: {
       } as React.CSSProperties,
     },
       React.createElement('div', {
-        style: { Ok I deployed gpt- 5.4 - nano.Add it to the proxy. 
+        style: {
           background: '#ffffff', border: '1px solid #e1dfdd',
           borderRadius: '2px', padding: '16px 24px',
-          minWidth: '340px', maxWidth: '480px',
+          minWidth: '280px', maxWidth: '480px', width: '100%',
           textAlign: 'center' as const,
           fontFamily: "'Segoe UI', system-ui, sans-serif",
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
@@ -1261,7 +1261,7 @@ function IdeaCarousel({ onSelect }: {
         background: '#ffffff', border: '1px solid #e1dfdd',
         borderRadius: '2px', padding: '16px 24px',
         cursor: 'pointer', textAlign: 'center' as const,
-        minWidth: '340px', maxWidth: '480px',
+        minWidth: '280px', maxWidth: '480px', width: '100%',
         position: 'relative' as const, overflow: 'hidden' as const,
         fontFamily: "'Segoe UI', system-ui, sans-serif",
         animation: 'ideaSlideIn 0.35s ease-out',
@@ -1335,8 +1335,10 @@ function LandingPage({ onSelect, sessions, onResumeSession }: {
   return React.createElement('div', {
     style: {
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      height: '100%', width: '100%',
-      background: '#ffffff',
+      minHeight: '100%', width: '100%',
+      background: '#ffffff', overflow: 'auto' as const,
+      padding: '24px 16px',
+      boxSizing: 'border-box' as const,
     } as React.CSSProperties,
   },
     React.createElement('div', {
@@ -1413,7 +1415,7 @@ function LandingPage({ onSelect, sessions, onResumeSession }: {
       // Cards
       React.createElement('div', {
         style: {
-          display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px',
+          display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px',
         } as React.CSSProperties,
       },
         // Web App card
@@ -1809,6 +1811,7 @@ export function TryAksApp() {
   },
     // Left: Sessions sidebar with folder tree
     React.createElement('div', {
+      className: 'try-aks-sidebar',
       style: {
         width: sidebarCollapsed ? '36px' : sidebarWidth + 'px',
         flexShrink: 0, height: '100%', overflow: 'hidden',
@@ -1830,10 +1833,13 @@ export function TryAksApp() {
     ),
 
     // Resize handle: sidebar <-> chat
-    !sidebarCollapsed && React.createElement(ResizeHandle, { direction: 'vertical', onResize: handleSidebarResize }),
+    !sidebarCollapsed && React.createElement('div', { className: 'try-aks-resize-handle' },
+      React.createElement(ResizeHandle, { direction: 'vertical', onResize: handleSidebarResize })
+    ),
 
     // Center-left: Chat
     React.createElement('div', {
+      className: 'try-aks-chat',
       style: {
         width: chatWidth + 'px', flexShrink: 0, height: '100%',
         overflow: 'hidden', display: 'flex', flexDirection: 'column',
@@ -1862,10 +1868,13 @@ export function TryAksApp() {
     ),
 
     // Resize handle: chat <-> editor
-    React.createElement(ResizeHandle, { direction: 'vertical', onResize: handleChatResize }),
+    React.createElement('div', { className: 'try-aks-resize-handle' },
+      React.createElement(ResizeHandle, { direction: 'vertical', onResize: handleChatResize })
+    ),
 
     // Center-right: File viewer / Architecture diagram
     React.createElement('div', {
+      className: 'try-aks-file-viewer',
       style: { flex: 1, minWidth: 0, height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' } as React.CSSProperties,
     },
       // File viewer toolbar
