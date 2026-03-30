@@ -404,8 +404,8 @@ a:hover {
     border-right: none !important;
   }
 
-  /* Improve touch targets */
-  button {
+  /* Improve touch targets — exclude small icon buttons (settings gear, etc.) */
+  button:not(.adaptive-settings-wrapper button) {
     min-height: 40px;
   }
 
