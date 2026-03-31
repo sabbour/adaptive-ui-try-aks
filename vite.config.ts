@@ -7,6 +7,9 @@ const gitSha = execSync('git rev-parse --short HEAD').toString().trim();
 export default defineConfig({
   base: '/try-aks/',
   plugins: [react()],
+  resolve: {
+    dedupe: ['@monaco-editor/react', '@monaco-editor/loader', 'monaco-editor'],
+  },
   define: {
     __GIT_SHA__: JSON.stringify(gitSha),
     __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
