@@ -1362,9 +1362,9 @@ function LandingPage({ onSelect, sessions, onResumeSession }: {
 
   return React.createElement('div', {
     style: {
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      minHeight: '100%', width: '100%',
-      background: '#fafafa', overflow: 'auto' as const,
+      display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+      height: '100%', width: '100%',
+      background: '#fafafa', overflowY: 'auto' as const,
       padding: '48px 16px',
       boxSizing: 'border-box' as const,
     } as React.CSSProperties,
@@ -1372,6 +1372,7 @@ function LandingPage({ onSelect, sessions, onResumeSession }: {
     React.createElement('div', {
       style: {
         maxWidth: '680px', width: '90%', textAlign: 'center' as const,
+        margin: 'auto 0',
       },
     },
 
