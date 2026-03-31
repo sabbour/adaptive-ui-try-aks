@@ -14,9 +14,9 @@
   "dependencies": {
     "@mermaid-js/layout-elk": "^0.2.1",
     "@monaco-editor/react": "^4.7.0",
-    "@sabbour/adaptive-ui-azure-pack": "^0.1.0",
-    "@sabbour/adaptive-ui-core": "^1.0.0",
-    "@sabbour/adaptive-ui-github-pack": "^0.1.0",
+    "@sabbour/adaptive-ui-azure-pack": "^0.2.3",
+    "@sabbour/adaptive-ui-core": "^1.0.10",
+    "@sabbour/adaptive-ui-github-pack": "^0.2.3",
     "mermaid": "^11.13.0",
     "monaco-editor": "^0.55.1",
     "react": "^18.3.1",
