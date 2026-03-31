@@ -50,7 +50,13 @@ Progressive discovery — gather requirements over multiple turns:
    - "Keep files local for now" — skip GitHub entirely. Files stay in the in-browser file viewer. The user can push to GitHub later.
    If the user chooses local, set state key repoMode="local" and skip all GitHub steps. Jump straight to step 5 (PLAN).
 5. PLAN: Present architecture with diagram. Confirm before generating code.
-6. BUILD: Generate all files (Bicep, K8s, Dockerfile, CI/CD). If repoMode is NOT "local", use githubCreatePR to commit them. If local, just generate the files — they appear in the file viewer automatically.
+6. BUILD — split across multiple turns to stay within output limits:
+   Turn 6a: Infrastructure files (Bicep for AKS, ACR, and any backing services).
+   Turn 6b: Application files (Dockerfile, app config, source scaffolding if new project).
+   Turn 6c: Kubernetes manifests (Deployment, Service, Gateway/HTTPRoute, HPA, PDB, ServiceAccount).
+   Turn 6d: CI/CD pipeline (GitHub Actions workflow).
+   Each turn should generate 2–4 files max. Include a Continue button that says "Generate next set of files" to advance.
+   After the last file-generation turn, if repoMode is NOT "local", use githubCreatePR to commit them. If local, files are already in the file viewer.
 7. REVIEW: Show the costEstimate component so the user sees estimated monthly costs BEFORE any Azure resources are created. Do NOT proceed to deployment until the user has seen and acknowledged costs.
 8. AZURE: Azure login → subscription/resource group selection → deploy.
 
@@ -196,6 +202,7 @@ MANDATORY: After generating infrastructure files and BEFORE any azureLogin or az
 
 ═══ 10. CODE GENERATION ═══
 - Emit files as codeBlock components (label = filename, e.g. "k8s/deployment.yaml"). They auto-save to the file viewer.
+- NEVER generate all files in a single response. Split across 2–4 turns (see step 6). Max 4 codeBlocks per turn.
 - Keep agentMessage to 3–5 sentences summarizing what was generated and why. Don't list file contents.
 - Cross-file consistency is critical: ACR name, AKS cluster name, resource group, image paths must match across Bicep, K8s YAML, and CI/CD pipeline.
 
@@ -1073,53 +1080,65 @@ interface AppIdea {
 }
 
 const FALLBACK_IDEAS: AppIdea[] = [
-  { label: 'Next.js app', description: 'Full-stack React framework with server-side rendering', prompt: 'I want to ship a Next.js web app to production. No existing repo, start from scratch. No database needed yet.', track: 'web-app' },
-  { label: 'Python FastAPI', description: 'High-performance async Python REST API', prompt: 'I want to ship a Python FastAPI backend to production. No existing repo, starting from scratch. No database for now.', track: 'web-app' },
-  { label: 'Spring Boot + Postgres', description: 'Enterprise Java backend with relational storage', prompt: 'I want to ship a Spring Boot (Java) app with a PostgreSQL database. No existing repo, start from scratch.', track: 'web-app' },
-  { label: 'AI Agent with RAG', description: 'Retrieval-augmented generation agent with vector search', prompt: 'I want to build and deploy an AI agent with RAG. No existing repo, starting from scratch. Needs a vector search database.', track: 'agentic-app' },
-  { label: 'LangChain chatbot', description: 'Conversational AI with memory and tool use', prompt: 'I want to build a LangChain Python chatbot with conversation history. No existing repo, starting from scratch.', track: 'agentic-app' },
-  { label: 'Go microservice', description: 'Lightweight, compiled service with minimal footprint', prompt: 'I want to ship a Go service to production. No existing repo, starting from scratch. No database needed.', track: 'web-app' },
-  { label: 'Django + Redis', description: 'Python web framework with in-memory caching layer', prompt: 'I want to ship a Django web app with Redis for caching. No existing repo, start from scratch.', track: 'web-app' },
-  { label: 'Express.js API', description: 'Node.js REST API with middleware ecosystem', prompt: 'I want to ship an Express.js REST API to production. No existing repo, starting from scratch. No database for now.', track: 'web-app' },
-  { label: 'ML model serving', description: 'GPU-accelerated model inference endpoint', prompt: 'I want to deploy a machine learning model as a REST API with GPU inference. No existing repo, starting from scratch.', track: 'agentic-app' },
-  { label: 'Rust microservice', description: 'Memory-safe systems language for high-throughput APIs', prompt: 'I want to ship a Rust microservice to production. No existing repo, starting from scratch. No database needed.', track: 'web-app' },
-  { label: 'Real-time dashboard', description: 'WebSocket-powered live data visualization app', prompt: 'I want to build a real-time dashboard with WebSocket updates. No existing repo, starting from scratch. Needs a database.', track: 'web-app' },
-  { label: 'Document QA bot', description: 'Upload documents and ask questions with AI answers', prompt: 'I want to build a document question-answering bot that processes uploaded PDFs. No existing repo, starting from scratch.', track: 'agentic-app' },
-  { label: 'E-commerce API', description: 'Product catalog, cart, and checkout REST service', prompt: 'I want to build an e-commerce backend API with product catalog and orders. No existing repo, starting from scratch. Needs a database.', track: 'web-app' },
-  { label: 'Multi-agent system', description: 'Orchestrated AI agents that collaborate on complex tasks', prompt: 'I want to build a multi-agent AI system where specialized agents collaborate. No existing repo, starting from scratch.', track: 'agentic-app' },
-  { label: 'Event-driven pipeline', description: 'Message queue consumer with async processing', prompt: 'I want to build an event-driven data processing pipeline. No existing repo, starting from scratch. Needs a message queue.', track: 'web-app' },
+  { label: 'Get dinner ideas from your fridge', description: 'Snap a photo, AI suggests what to cook tonight', prompt: 'I want to build an app where users photograph their fridge contents and an AI suggests recipes from what they have. No existing repo, starting from scratch.', track: 'agentic-app' },
+  { label: 'Split bills with your roommates', description: 'Track expenses and settle up with emoji ratings', prompt: 'I want to build a bill-splitting app for roommates where you rate each expense with emojis and it tracks who owes what. No existing repo, starting from scratch.', track: 'web-app' },
+  { label: 'Post on your neighborhood board', description: 'Lost pets, free stuff, and local events on your block', prompt: 'I want to build a neighborhood bulletin board app where people post lost pets, free furniture, and local events. No existing repo, starting from scratch.', track: 'web-app' },
+  { label: 'Plan a weekend trip with AI', description: 'Drop a pin, get a personalized itinerary in seconds', prompt: 'I want to build an AI travel planner that generates personalized weekend itineraries based on your interests and budget. No existing repo, starting from scratch.', track: 'agentic-app' },
+  { label: 'Keep your plants alive', description: 'Identify plants from photos and get smart watering reminders', prompt: 'I want to build a plant care app that identifies plants from photos and sends smart watering reminders based on weather. No existing repo, starting from scratch.', track: 'agentic-app' },
+  { label: 'Discover indie coffee shops nearby', description: 'Map, reviews, and taste profiles for local cafes', prompt: 'I want to build an app for finding and reviewing independent coffee shops with a map and taste profile matching. No existing repo, starting from scratch.', track: 'web-app' },
+  { label: 'Bet on your own habits', description: 'Stake money on goals, friends verify you did it', prompt: 'I want to build a habit tracker where you stake real money and friends verify if you completed your habits. No existing repo, starting from scratch.', track: 'web-app' },
+  { label: 'Turn lecture notes into quizzes', description: 'Upload notes, get AI-generated flashcards and practice tests', prompt: 'I want to build an AI study assistant that turns uploaded lecture notes into practice quizzes and spaced-repetition flashcards. No existing repo, starting from scratch.', track: 'agentic-app' },
+  { label: 'Build a digital menu for your cafe', description: 'Beautiful menus with QR codes, updated in real time', prompt: 'I want to build a SaaS tool where restaurants create and update beautiful digital menus with QR codes. No existing repo, starting from scratch.', track: 'web-app' },
+  { label: 'Match your music to your workout', description: 'AI picks songs that sync with your running pace', prompt: 'I want to build a fitness app that auto-generates playlists matching your running pace or workout intensity. No existing repo, starting from scratch.', track: 'agentic-app' },
+  { label: 'Find playmates for your dog', description: 'Swipe on nearby dogs and schedule park meetups', prompt: 'I want to build a pet social app where dog owners find nearby playmates and schedule meetups at local parks. No existing repo, starting from scratch.', track: 'web-app' },
+  { label: 'Track your daily carbon footprint', description: 'See your impact and get lower-carbon alternatives', prompt: 'I want to build a sustainability tracker that estimates your daily carbon footprint and suggests lower-impact alternatives. No existing repo, starting from scratch.', track: 'web-app' },
+  { label: 'Pick a movie everyone will like', description: 'Friends swipe, the algorithm finds the perfect match', prompt: 'I want to build a group decision app where friends swipe on movies and it finds the best match everyone will enjoy. No existing repo, starting from scratch.', track: 'web-app' },
+  { label: 'Redesign your room with AI', description: 'Upload a photo, get furniture and style suggestions', prompt: 'I want to build an AI interior design app where users upload room photos and get furniture layout and style suggestions. No existing repo, starting from scratch.', track: 'agentic-app' },
+  { label: 'Volunteer for causes near you', description: 'Match your skills with local nonprofits that need help', prompt: 'I want to build a platform that matches volunteers with local nonprofits and community projects based on skills and availability. No existing repo, starting from scratch.', track: 'web-app' },
 ];
 
 // Module-level cache so ideas survive re-renders but not full page reloads
 let cachedIdeas: AppIdea[] | null = null;
+let fetchInFlight: Promise<AppIdea[]> | null = null;
 
 async function fetchIdeasFromLLM(): Promise<AppIdea[]> {
   if (cachedIdeas) return cachedIdeas;
+  if (fetchInFlight) return fetchInFlight;
+  fetchInFlight = _fetchIdeasFromLLM().finally(() => { fetchInFlight = null; });
+  return fetchInFlight;
+}
+
+async function _fetchIdeasFromLLM(): Promise<AppIdea[]> {
   const body = JSON.stringify({
     messages: [{
       role: 'user',
-      content: `You are an inspiring startup idea generator. Think like a Y Combinator partner brainstorming the next wave of cloud-native apps.
+      content: `You are a creative product visionary generating app ideas that make developers say "I want to build that RIGHT NOW."
 
-Generate 15 app ideas that would make a developer excited to build this weekend and ship to production on Kubernetes. Each idea should feel like a real product someone would pay for — not a tutorial exercise.
+Generate 15 app ideas that feel like real products people would love to use. Think beyond developer tools — imagine apps your friends, family, or coworkers would actually download.
 
-Mix these categories creatively:
-- SaaS products (dashboards, marketplaces, collaboration tools)
-- AI-powered apps (agents, copilots, content generation, computer vision)
-- Developer tools (CI/CD helpers, monitoring, code review bots)
-- Data platforms (real-time analytics, ETL pipelines, search engines)
-- Consumer apps (social, health, finance, education)
+Mix these categories — be surprising and specific:
+- Consumer apps people would tell friends about (social, dating, fitness, cooking, pets, travel, music, gaming)
+- Creative tools (AI art, video editing, music production, writing assistants, meme generators)
+- Small business tools (scheduling, invoicing, inventory, loyalty programs, menu builders)
+- Community & social impact (neighborhood apps, volunteer matching, local events, sustainability trackers)
+- AI-powered experiences (personal stylists, recipe generators from fridge photos, trip planners, study buddies)
+- Fun & quirky (habit trackers with stakes, AI roast generators, movie night picker, plant care coach)
 
-Make each idea specific and opinionated — "AI code review bot that posts inline suggestions on PRs" not "a web app". Surprise the reader.
+Rules:
+- Each idea should feel like something you'd find on Product Hunt, not a tutorial exercise
+- Be opinionated and specific — "app that lets roommates split bills with passive-aggressive emoji ratings" not "a finance app"
+- Mix serious and playful ideas
+- At least 5 should use AI/ML (mark as agentic-app)
 
 Return ONLY a JSON array with these fields:
-- "label": catchy product name (2-4 words)
-- "description": punchy one-liner (6-12 words) that sells the idea
+- "label": short hook sentence (5-8 words) that describes what it does — NOT an app name. Examples: "Split bills with your roommates", "Find recipes from your fridge photo", "Track your carbon footprint daily"
+- "description": punchy one-liner (6-12 words) that adds detail or personality
 - "prompt": one sentence starting with "I want to build..." describing the product. End with "No existing repo, starting from scratch."
 - "track": "web-app" or "agentic-app" (use agentic-app for AI/ML/LLM projects)
 
 Return ONLY the JSON array, no markdown fences, no explanation.`,
     }],
-    model: 'gpt-4o',
+    model: 'gpt-5.4-nano',
     max_completion_tokens: 2048,
     temperature: 1.0,
   });
@@ -1345,27 +1364,27 @@ function LandingPage({ onSelect, sessions, onResumeSession }: {
     style: {
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       minHeight: '100%', width: '100%',
-      background: '#ffffff', overflow: 'auto' as const,
-      padding: '24px 16px',
+      background: '#fafafa', overflow: 'auto' as const,
+      padding: '48px 16px',
       boxSizing: 'border-box' as const,
     } as React.CSSProperties,
   },
     React.createElement('div', {
       style: {
-        maxWidth: '720px', width: '90%', textAlign: 'center' as const,
+        maxWidth: '680px', width: '90%', textAlign: 'center' as const,
       },
     },
 
       // Resume sessions section (shown first if there are existing sessions)
       resumableSessions.length > 0 && React.createElement('div', {
-        style: { marginBottom: '32px', textAlign: 'left' as const },
+        style: { marginBottom: '40px', textAlign: 'left' as const },
       },
         React.createElement('h2', {
           style: {
-            fontSize: '14px', fontWeight: 600, color: '#292827', margin: '0 0 12px',
-            fontFamily: "'Segoe UI', system-ui, sans-serif",
+            fontSize: '13px', fontWeight: 500, color: '#6e6e6e', margin: '0 0 12px',
+            textTransform: 'uppercase' as const, letterSpacing: '0.05em',
           },
-        }, 'Pick up where you left off'),
+        }, 'Recent sessions'),
         React.createElement('div', {
           style: { display: 'flex', flexDirection: 'column', gap: '6px' } as React.CSSProperties,
         },
@@ -1374,49 +1393,49 @@ function LandingPage({ onSelect, sessions, onResumeSession }: {
               key: s.id,
               onClick: () => onResumeSession(s.id),
               style: {
-                background: '#ffffff', border: '1px solid #e1dfdd',
-                borderRadius: '2px', padding: '10px 16px',
+                background: '#ffffff', border: '1px solid #e5e5e5',
+                borderRadius: '8px', padding: '12px 16px',
                 cursor: 'pointer', textAlign: 'left' as const,
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                transition: 'border-color 0.15s, background 0.15s',
-                fontFamily: "'Segoe UI', system-ui, sans-serif",
+                transition: 'border-color 0.15s, background 0.15s, box-shadow 0.15s',
               },
               onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => {
-                e.currentTarget.style.borderColor = '#0078d4';
-                e.currentTarget.style.background = '#faf9f8';
+                e.currentTarget.style.borderColor = '#a3a3a3';
+                e.currentTarget.style.boxShadow = '0 1px 2px 0 rgba(0,0,0,0.05)';
               },
               onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => {
-                e.currentTarget.style.borderColor = '#e1dfdd';
-                e.currentTarget.style.background = '#ffffff';
+                e.currentTarget.style.borderColor = '#e5e5e5';
+                e.currentTarget.style.boxShadow = 'none';
               },
             },
               React.createElement('span', {
-                style: { fontSize: '13px', fontWeight: 500, color: '#292827' },
+                style: { fontSize: '14px', fontWeight: 500, color: '#171717' },
               }, s.name),
               React.createElement('span', {
-                style: { fontSize: '12px', color: '#a19f9d' },
+                style: { fontSize: '12px', color: '#a3a3a3' },
               }, new Date(s.updatedAt).toLocaleDateString())
             )
           )
         ),
         React.createElement('div', {
-          style: { borderBottom: '1px solid #e1dfdd', margin: '24px 0 0' },
+          style: { borderBottom: '1px solid #e5e5e5', margin: '32px 0 0' },
         })
       ),
       // Title
       React.createElement('h1', {
         style: {
-          fontSize: '24px', fontWeight: 600, color: '#292827',
+          fontSize: '32px', fontWeight: 700, color: '#171717',
           margin: '0 0 8px',
-          fontFamily: "'Segoe UI', system-ui, sans-serif",
+          letterSpacing: '-0.04em',
+          lineHeight: '1.2',
         },
       }, 'What are you building?'),
       React.createElement('p', {
         style: {
-          fontSize: '13px', color: '#646464', margin: '0 0 32px',
-          lineHeight: '20px',
+          fontSize: '16px', color: '#6e6e6e', margin: '0 0 40px',
+          lineHeight: '1.6',
         },
-      }, 'Get your app running in minutes. Pick a starting point and the AI guide willhandle the rest.'),
+      }, 'Get your app running in production in minutes. Pick a starting point and let the AI guide handle the rest.'),
 
       // LLM-generated idea carousel
       React.createElement(IdeaCarousel, { onSelect }),
@@ -1431,33 +1450,33 @@ function LandingPage({ onSelect, sessions, onResumeSession }: {
         React.createElement('button', {
           onClick: () => onSelect('web-app'),
           style: {
-            background: '#ffffff', border: '1px solid #e1dfdd',
-            borderRadius: '0', padding: '24px 20px',
+            background: '#ffffff', border: '1px solid #e5e5e5',
+            borderRadius: '12px', padding: '28px 24px',
             cursor: 'pointer', textAlign: 'left' as const,
-            transition: 'border-color 0.15s, box-shadow 0.15s',
+            transition: 'border-color 0.15s, box-shadow 0.2s, transform 0.15s',
           },
           onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => {
-            e.currentTarget.style.borderColor = '#0078d4';
-            e.currentTarget.style.boxShadow = '0 3.2px 7.2px rgba(0,0,0,0.132), 0 0.6px 1.8px rgba(0,0,0,0.108)';
+            e.currentTarget.style.borderColor = '#171717';
+            e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05)';
           },
           onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => {
-            e.currentTarget.style.borderColor = '#e1dfdd';
+            e.currentTarget.style.borderColor = '#e5e5e5';
             e.currentTarget.style.boxShadow = 'none';
           },
         },
           React.createElement('img', {
             src: iconGlobe, alt: '', width: 24, height: 24,
-            style: { marginBottom: '12px', filter: 'brightness(0) saturate(100%) invert(28%) sepia(98%) saturate(1624%) hue-rotate(196deg) brightness(96%) contrast(101%)' },
+            style: { marginBottom: '16px', opacity: 0.7 },
           }),
           React.createElement('div', {
-            style: { fontSize: '14px', fontWeight: 600, color: '#292827', marginBottom: '4px' },
+            style: { fontSize: '16px', fontWeight: 600, color: '#171717', marginBottom: '6px', letterSpacing: '-0.01em' },
           }, 'Web App or API'),
           React.createElement('div', {
-            style: { fontSize: '13px', color: '#646464', lineHeight: '20px' },
+            style: { fontSize: '14px', color: '#6e6e6e', lineHeight: '1.5' },
           }, 'Ship a web frontend, REST API, or microservice. Bring your code or start fresh \u2014 you will get a working app, CI/CD pipeline, and a production URL.'),
           React.createElement('div', {
             style: {
-              marginTop: '14px', fontSize: '13px', fontWeight: 600, color: '#0078d4',
+              marginTop: '16px', fontSize: '14px', fontWeight: 500, color: '#171717',
             },
           }, 'Get started \u2192')
         ),
@@ -1466,52 +1485,103 @@ function LandingPage({ onSelect, sessions, onResumeSession }: {
         React.createElement('button', {
           onClick: () => onSelect('agentic-app'),
           style: {
-            background: '#ffffff', border: '1px solid #e1dfdd',
-            borderRadius: '0', padding: '24px 20px',
+            background: '#ffffff', border: '1px solid #e5e5e5',
+            borderRadius: '12px', padding: '28px 24px',
             cursor: 'pointer', textAlign: 'left' as const,
-            transition: 'border-color 0.15s, box-shadow 0.15s',
+            transition: 'border-color 0.15s, box-shadow 0.2s, transform 0.15s',
           },
           onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => {
-            e.currentTarget.style.borderColor = '#0078d4';
-            e.currentTarget.style.boxShadow = '0 3.2px 7.2px rgba(0,0,0,0.132), 0 0.6px 1.8px rgba(0,0,0,0.108)';
+            e.currentTarget.style.borderColor = '#171717';
+            e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05)';
           },
           onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => {
-            e.currentTarget.style.borderColor = '#e1dfdd';
+            e.currentTarget.style.borderColor = '#e5e5e5';
             e.currentTarget.style.boxShadow = 'none';
           },
         },
           React.createElement('img', {
             src: iconBotSparkle, alt: '', width: 24, height: 24,
-            style: { marginBottom: '12px', filter: 'brightness(0) saturate(100%) invert(28%) sepia(98%) saturate(1624%) hue-rotate(196deg) brightness(96%) contrast(101%)' },
+            style: { marginBottom: '16px', opacity: 0.7 },
           }),
           React.createElement('div', {
-            style: { fontSize: '14px', fontWeight: 600, color: '#292827', marginBottom: '4px' },
+            style: { fontSize: '16px', fontWeight: 600, color: '#171717', marginBottom: '6px', letterSpacing: '-0.01em' },
           }, 'AI Agent'),
           React.createElement('div', {
-            style: { fontSize: '13px', color: '#646464', lineHeight: '20px' },
+            style: { fontSize: '14px', color: '#6e6e6e', lineHeight: '1.5' },
           }, 'Deploy an AI agent that calls tools, retrieves knowledge, and reasons over data. Self-host open-source models or connect to Azure OpenAI \u2014 with built-in scaling and low cost.'),
           React.createElement('div', {
             style: {
-              marginTop: '14px', fontSize: '13px', fontWeight: 600, color: '#0078d4',
+              marginTop: '16px', fontSize: '14px', fontWeight: 500, color: '#171717',
             },
           }, 'Get started \u2192')
+        )
+      ),
+
+      // Technical quickstarts
+      React.createElement('div', {
+        style: {
+          marginTop: '32px', textAlign: 'center' as const,
+        },
+      },
+        React.createElement('div', {
+          style: {
+            fontSize: '12px', fontWeight: 500, color: '#a3a3a3',
+            textTransform: 'uppercase' as const, letterSpacing: '0.05em',
+            marginBottom: '12px',
+          },
+        }, 'or start with a framework'),
+        React.createElement('div', {
+          style: { display: 'flex', flexWrap: 'wrap' as const, gap: '8px', justifyContent: 'center' },
+        },
+          ...[
+            { label: 'Next.js', prompt: 'I want to ship a Next.js web app to production. No existing repo, starting from scratch.', track: 'web-app' as const },
+            { label: 'Python FastAPI', prompt: 'I want to ship a Python FastAPI backend to production. No existing repo, starting from scratch.', track: 'web-app' as const },
+            { label: 'Express.js', prompt: 'I want to ship an Express.js REST API to production. No existing repo, starting from scratch.', track: 'web-app' as const },
+            { label: 'Go', prompt: 'I want to ship a Go microservice to production. No existing repo, starting from scratch.', track: 'web-app' as const },
+            { label: 'Spring Boot', prompt: 'I want to ship a Spring Boot Java app to production. No existing repo, starting from scratch.', track: 'web-app' as const },
+            { label: 'Django', prompt: 'I want to ship a Django web app to production. No existing repo, starting from scratch.', track: 'web-app' as const },
+            { label: 'Rust', prompt: 'I want to ship a Rust microservice to production. No existing repo, starting from scratch.', track: 'web-app' as const },
+            { label: 'LangChain Agent', prompt: 'I want to build a LangChain Python agent with tool use and conversation memory. No existing repo, starting from scratch.', track: 'agentic-app' as const },
+            { label: 'RAG App', prompt: 'I want to build a retrieval-augmented generation app with document upload and AI answers. No existing repo, starting from scratch.', track: 'agentic-app' as const },
+          ].map(q =>
+            React.createElement('button', {
+              key: q.label,
+              onClick: () => onSelect(q.track, q.prompt),
+              style: {
+                background: '#ffffff', border: '1px solid #e5e5e5',
+                borderRadius: '999px', padding: '5px 14px',
+                fontSize: '13px', color: '#6e6e6e', fontWeight: 500,
+                cursor: 'pointer',
+                transition: 'border-color 0.15s, color 0.15s, background 0.15s',
+              },
+              onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => {
+                e.currentTarget.style.borderColor = '#171717';
+                e.currentTarget.style.color = '#171717';
+                e.currentTarget.style.background = '#fafafa';
+              },
+              onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => {
+                e.currentTarget.style.borderColor = '#e5e5e5';
+                e.currentTarget.style.color = '#6e6e6e';
+                e.currentTarget.style.background = '#ffffff';
+              },
+            }, q.label)
+          )
         )
       ),
 
       // Build version indicator
       React.createElement('div', {
         style: {
-          marginTop: '32px', fontSize: '11px', color: '#c8c6c4',
-          fontFamily: "'Segoe UI', system-ui, sans-serif",
+          marginTop: '48px', fontSize: '12px', color: '#d4d4d4',
         },
       },
         React.createElement('a', {
           href: 'https://github.com/sabbour/adaptive-ui-try-aks/commit/' + GIT_SHA,
           target: '_blank',
           rel: 'noopener noreferrer',
-          style: { color: '#c8c6c4', textDecoration: 'none' },
-          onMouseEnter: (e: React.MouseEvent<HTMLAnchorElement>) => { e.currentTarget.style.color = '#0078d4'; },
-          onMouseLeave: (e: React.MouseEvent<HTMLAnchorElement>) => { e.currentTarget.style.color = '#c8c6c4'; },
+          style: { color: '#d4d4d4', textDecoration: 'none' },
+          onMouseEnter: (e: React.MouseEvent<HTMLAnchorElement>) => { e.currentTarget.style.color = '#171717'; },
+          onMouseLeave: (e: React.MouseEvent<HTMLAnchorElement>) => { e.currentTarget.style.color = '#d4d4d4'; },
         }, GIT_SHA),
         ' \u00b7 ' + new Date(BUILD_TIME).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
       )
@@ -1881,14 +1951,14 @@ export function TryAksApp() {
         systemPromptSuffix: systemPrompt,
         sendPromptRef,
         visiblePacks: ['azure', 'github'],
-        models: ['gpt-5.3-codex', 'gpt-5.3-chat', 'Kimi-K2.5', 'DeepSeek-V3.2'],
+        models: ['gpt-5.3-codex', 'gpt-5.3-chat', 'gpt-5.4-nano', 'gpt-4o', 'Kimi-K2.5', 'DeepSeek-V3.2'],
         appId: 'try-aks',
         theme: {
-          primaryColor: '#0078d4',
+          primaryColor: '#171717',
           backgroundColor: '#ffffff',
           surfaceColor: '#ffffff',
-          textColor: '#292827',
-          borderRadius: '2px',
+          textColor: '#171717',
+          borderRadius: '8px',
         },
         onSpecChange: handleSpecChangeWithSave,
         onError: (error: Error) => console.error('Try AKS error:', error),
