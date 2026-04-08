@@ -55,7 +55,9 @@ Progressive discovery — gather requirements over multiple turns:
    Turn 6b: Application files (Dockerfile, app config, source scaffolding if new project).
    Turn 6c: Kubernetes manifests (Deployment, Service, Gateway/HTTPRoute, HPA, PDB, ServiceAccount).
    Turn 6d: CI/CD pipeline (GitHub Actions workflow).
-   Each turn should generate 2–4 files max. Include a Continue button that says "Generate next set of files" to advance.
+   Each turn should generate 2–4 files max. Do NOT include any Continue button.
+   Instead, set state key "filesComplete" to false while more files remain, and true on the last file-generation turn.
+   The app will automatically continue to the next batch — no user action needed.
    After the last file-generation turn, if repoMode is NOT "local", use githubCreatePR to commit them. If local, files are already in the file viewer.
 7. REVIEW: Show the costEstimate component so the user sees estimated monthly costs BEFORE any Azure resources are created. Do NOT proceed to deployment until the user has seen and acknowledged costs.
 8. AZURE: Azure login → subscription/resource group selection → deploy.
@@ -203,6 +205,8 @@ MANDATORY: After generating infrastructure files and BEFORE any azureLogin or az
 ═══ 10. CODE GENERATION ═══
 - Emit files as codeBlock components (label = filename, e.g. "k8s/deployment.yaml"). They auto-save to the file viewer.
 - NEVER generate all files in a single response. Split across 2–4 turns (see step 6). Max 4 codeBlocks per turn.
+- Do NOT include any "Generate next set of files" button. The app auto-continues when filesComplete is false.
+- Set state key "filesComplete" to false on every file-generation turn EXCEPT the last one. Set it to true on the final file-generation turn.
 - Keep agentMessage to 3–5 sentences summarizing what was generated and why. Don't list file contents.
 - Cross-file consistency is critical: ACR name, AKS cluster name, resource group, image paths must match across Bicep, K8s YAML, and CI/CD pipeline.
 
@@ -928,71 +932,155 @@ function estimateWorkloadCPU(artifacts: Array<{ filename: string; content: strin
   return totalMillicores / 1000;
 }
 
-function computeCostEstimate(artifacts: Array<{ filename: string; content: string }>): { monthly: string; items: CostLineItem[] } {
-  const items: CostLineItem[] = [];
-  let totalMonthly = 0;
-
+/** Detect which Azure services are referenced in generated artifacts. */
+function detectServices(artifacts: Array<{ filename: string; content: string }>): {
+  hasAKS: boolean; hasGateway: boolean; hasACR: boolean; hasKaito: boolean;
+  hasCosmosDB: boolean; hasPostgres: boolean; hasRedis: boolean;
+  hasAISearch: boolean; hasAOAI: boolean; hasStorageAccount: boolean;
+  workloadVcpus: number;
+} {
   const hasBicep = artifacts.some((a) => a.filename.endsWith('.bicep'));
   const hasK8s = artifacts.some((a) => a.filename.endsWith('.yaml') || a.filename.endsWith('.yml'));
-  const hasKaito = artifacts.some((a) => a.filename.includes('kaito'));
-  const hasGateway = artifacts.some((a) => a.content.includes('approuting-istio') || a.content.includes('Gateway'));
-  const hasACR = artifacts.some((a) => a.content.includes('containerRegistries') || a.content.includes('Microsoft.ContainerRegistry'));
-  const hasCosmosDB = artifacts.some((a) => a.content.includes('Cosmos') || a.content.includes('cosmosdb') || a.content.includes('databaseAccounts'));
-  const hasPostgres = artifacts.some((a) => a.content.includes('PostgreSQL') || a.content.includes('postgresql') || a.content.includes('flexibleServers'));
-  const hasRedis = artifacts.some((a) => a.content.includes('Redis') || a.content.includes('redis'));
-  const hasAISearch = artifacts.some((a) => a.content.includes('AI Search') || a.content.includes('searchServices'));
-  const hasAOAI = artifacts.some((a) => a.content.includes('Azure OpenAI') || a.content.includes('openai') || a.content.includes('cognitiveservices'));
-  const hasStorageAccount = artifacts.some((a) => a.content.includes('storageAccounts') || a.content.includes('Microsoft.Storage') || a.content.includes('blob_data_contributor'));
-
-  if (hasK8s || hasBicep) {
-    // AKS Automatic control plane: $116.80/mo
-    const aksControlMonthly = 116.80;
-    totalMonthly += aksControlMonthly;
-    items.push({ label: 'AKS Automatic control plane', value: '$' + aksControlMonthly.toFixed(2) + '/mo' });
-    items.push({ label: 'System nodes (managed, no charge)', value: '$0.00', indent: true });
-
-    // Estimate user workload vCPUs from K8s manifest CPU requests
-    const estCores = estimateWorkloadCPU(artifacts);
-    const vcpus = Math.max(2, Math.ceil(estCores));
-    const vmCostPerVcpu = 0.048;
-    const surchargePerVcpuMo = 7.05;
-    const workloadMonthly = vcpus * ((vmCostPerVcpu * 730) + surchargePerVcpuMo);
-    totalMonthly += workloadMonthly;
-    items.push({ label: 'Workload compute (' + vcpus + ' vCPU, auto-selected)', value: '+$' + Math.round(workloadMonthly) + '/mo', indent: true });
-  }
-
-  if (hasGateway) { const v = Math.round(0.12 * 730); totalMonthly += v; items.push({ label: 'App Routing (Gateway API)', value: '+$' + v + '/mo' }); }
-  if (hasACR) { const v = Math.round(0.023 * 730); totalMonthly += v; items.push({ label: 'Container Registry (Standard)', value: '+$' + v + '/mo' }); }
-  if (hasKaito) {
-    // NC24ads_A100_v4: $3.67/hr base VM + 24 vCPU × $32.29/vCPU/mo GPU surcharge
-    const vmMonthly = 3.67 * 730;
-    const gpuSurchargeMonthly = 24 * 32.29;
-    const kaitoMonthly = vmMonthly + gpuSurchargeMonthly;
-    totalMonthly += kaitoMonthly;
-    items.push({ label: 'KAITO GPU node (NC24ads A100)', value: '+$' + Math.round(kaitoMonthly).toLocaleString() + '/mo' });
-    items.push({ label: 'Includes GPU compute surcharge', value: '+$' + Math.round(gpuSurchargeMonthly) + '/mo', indent: true });
-  }
-  if (hasCosmosDB) { const v = Math.round(0.034 * 730); totalMonthly += v; items.push({ label: 'Cosmos DB (400 RU/s)', value: '+$' + v + '/mo' }); }
-  if (hasPostgres) { const v = Math.round(0.13 * 730); totalMonthly += v; items.push({ label: 'PostgreSQL Flex (Burstable B2s)', value: '+$' + v + '/mo' }); }
-  if (hasRedis) { const v = Math.round(0.023 * 730); totalMonthly += v; items.push({ label: 'Redis Cache (C0 Basic)', value: '+$' + v + '/mo' }); }
-  if (hasAISearch) { const v = Math.round(0.34 * 730); totalMonthly += v; items.push({ label: 'Azure AI Search (Basic)', value: '+$' + v + '/mo' }); }
-  if (hasAOAI) { items.push({ label: 'Azure OpenAI', value: 'pay-per-token' }); }
-  if (hasStorageAccount) { const v = Math.round(0.02 * 730); totalMonthly += v; items.push({ label: 'Storage Account (LRS)', value: '+$' + v + '/mo' }); }
-
-  if (items.length === 0) {
-    return { monthly: '\u2014', items: [{ label: 'No resources configured yet', value: '' }] };
-  }
-
   return {
-    monthly: '~$' + Math.round(totalMonthly).toLocaleString() + '/mo',
-    items,
+    hasAKS: hasBicep || hasK8s,
+    hasGateway: artifacts.some((a) => a.content.includes('approuting-istio') || a.content.includes('Gateway')),
+    hasACR: artifacts.some((a) => a.content.includes('containerRegistries') || a.content.includes('Microsoft.ContainerRegistry')),
+    hasKaito: artifacts.some((a) => a.filename.includes('kaito')),
+    hasCosmosDB: artifacts.some((a) => a.content.includes('Cosmos') || a.content.includes('cosmosdb') || a.content.includes('databaseAccounts')),
+    hasPostgres: artifacts.some((a) => a.content.includes('PostgreSQL') || a.content.includes('postgresql') || a.content.includes('flexibleServers')),
+    hasRedis: artifacts.some((a) => a.content.includes('Redis') || a.content.includes('redis')),
+    hasAISearch: artifacts.some((a) => a.content.includes('AI Search') || a.content.includes('searchServices')),
+    hasAOAI: artifacts.some((a) => a.content.includes('Azure OpenAI') || a.content.includes('openai') || a.content.includes('cognitiveservices')),
+    hasStorageAccount: artifacts.some((a) => a.content.includes('storageAccounts') || a.content.includes('Microsoft.Storage') || a.content.includes('blob_data_contributor')),
+    workloadVcpus: Math.max(2, Math.ceil(estimateWorkloadCPU(artifacts))),
   };
 }
 
-/** Inline cost estimation component — scans generated artifacts and shows cost breakdown. */
+interface PricingQuery { serviceName: string; armSkuName?: string; armRegionName?: string }
+
+/** Fetch a single retail price from the Azure Pricing API proxy. Returns $/hr or null. */
+async function fetchRetailPrice(q: PricingQuery): Promise<number | null> {
+  const filters: string[] = [];
+  filters.push("serviceName eq '" + q.serviceName + "'");
+  if (q.armSkuName) filters.push("armSkuName eq '" + q.armSkuName + "'");
+  if (q.armRegionName) filters.push("armRegionName eq '" + q.armRegionName + "'");
+  filters.push("priceType eq 'Consumption'");
+  const filterStr = filters.join(' and ');
+  const url = '/api/pricing-proxy/api/retail/prices?$filter=' + encodeURIComponent(filterStr) + "&meterRegion='primary'";
+  try {
+    const res = await fetch(url, { headers: { Accept: 'application/json' } });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const items = data.Items || [];
+    if (items.length === 0) return null;
+    return items[0].retailPrice as number;
+  } catch { return null; }
+}
+
+/** Inline cost estimation component — scans generated artifacts, fetches live prices, and shows cost breakdown. */
 export function CostEstimateComponent() {
   const artifacts = useSyncExternalStore(subscribeArtifacts, getArtifacts);
-  const { monthly, items } = computeCostEstimate(artifacts);
+  const { sendPrompt, disabled } = useAdaptive();
+  const [items, setItems] = useState<CostLineItem[]>([]);
+  const [monthly, setMonthly] = useState<string>('Loading…');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (disabled) return;
+    let cancelled = false;
+
+    (async () => {
+      const svc = detectServices(artifacts);
+      const result: CostLineItem[] = [];
+      let total = 0;
+      const region = 'eastus';
+
+      if (svc.hasAKS) {
+        // AKS control plane is a fixed known price
+        const aksControl = 116.80;
+        total += aksControl;
+        result.push({ label: 'AKS Automatic control plane', value: '$' + aksControl.toFixed(2) + '/mo' });
+        result.push({ label: 'System nodes (managed, no charge)', value: '$0.00', indent: true });
+
+        // Fetch live VM price for workload compute
+        const vmHourly = await fetchRetailPrice({ serviceName: 'Virtual Machines', armSkuName: 'Standard_D2s_v5', armRegionName: region });
+        const surchargeHourly = await fetchRetailPrice({ serviceName: 'Azure Kubernetes Service', armRegionName: region });
+        const vmCostPerHr = vmHourly ?? 0.048; // per-vCPU fallback
+        const surchargePerVcpuMo = surchargeHourly ? surchargeHourly * 730 : 7.05;
+        // D2s_v5 = 2 vCPU, scale proportionally
+        const perVcpuHr = vmCostPerHr / 2;
+        const workloadMonthly = svc.workloadVcpus * ((perVcpuHr * 730) + surchargePerVcpuMo);
+        total += workloadMonthly;
+        result.push({ label: 'Workload compute (' + svc.workloadVcpus + ' vCPU, auto-selected)', value: '+$' + Math.round(workloadMonthly) + '/mo', indent: true });
+      }
+
+      if (svc.hasGateway) {
+        result.push({ label: 'App Routing (Gateway API)', value: 'included' });
+      }
+      if (svc.hasACR) {
+        const acrHourly = await fetchRetailPrice({ serviceName: 'Container Registry', armRegionName: region });
+        const v = acrHourly ? Math.round(acrHourly * 730) : 5;
+        total += v;
+        result.push({ label: 'Container Registry (Basic)', value: '+$' + v + '/mo' });
+      }
+      if (svc.hasKaito) {
+        const gpuHourly = await fetchRetailPrice({ serviceName: 'Virtual Machines', armSkuName: 'Standard_NC24ads_A100_v4', armRegionName: region });
+        const gpuSurcharge = await fetchRetailPrice({ serviceName: 'Azure Kubernetes Service', armRegionName: region });
+        const vmMonthly = (gpuHourly ?? 3.67) * 730;
+        const gpuSurchargeMo = (gpuSurcharge ? gpuSurcharge * 730 : 32.29) * 24;
+        const kaitoMonthly = vmMonthly + gpuSurchargeMo;
+        total += kaitoMonthly;
+        result.push({ label: 'KAITO GPU node (NC24ads A100)', value: '+$' + Math.round(kaitoMonthly).toLocaleString() + '/mo' });
+        result.push({ label: 'Includes GPU compute surcharge', value: '+$' + Math.round(gpuSurchargeMo) + '/mo', indent: true });
+      }
+      if (svc.hasCosmosDB) {
+        const hourly = await fetchRetailPrice({ serviceName: 'Azure Cosmos DB', armRegionName: region });
+        const v = hourly ? Math.round(hourly * 730) : 25;
+        total += v;
+        result.push({ label: 'Cosmos DB (400 RU/s)', value: '+$' + v + '/mo' });
+      }
+      if (svc.hasPostgres) {
+        const hourly = await fetchRetailPrice({ serviceName: 'Azure Database for PostgreSQL', armSkuName: 'Standard_B2s', armRegionName: region });
+        const v = hourly ? Math.round(hourly * 730) : 95;
+        total += v;
+        result.push({ label: 'PostgreSQL Flex (Burstable B2s)', value: '+$' + v + '/mo' });
+      }
+      if (svc.hasRedis) {
+        const hourly = await fetchRetailPrice({ serviceName: 'Redis Cache', armRegionName: region });
+        const v = hourly ? Math.round(hourly * 730) : 17;
+        total += v;
+        result.push({ label: 'Redis Cache (C0 Basic)', value: '+$' + v + '/mo' });
+      }
+      if (svc.hasAISearch) {
+        const hourly = await fetchRetailPrice({ serviceName: 'Azure AI Search', armRegionName: region });
+        const v = hourly ? Math.round(hourly * 730) : 248;
+        total += v;
+        result.push({ label: 'Azure AI Search (Basic)', value: '+$' + v + '/mo' });
+      }
+      if (svc.hasAOAI) {
+        result.push({ label: 'Azure OpenAI', value: 'pay-per-token' });
+      }
+      if (svc.hasStorageAccount) {
+        const hourly = await fetchRetailPrice({ serviceName: 'Storage', armRegionName: region });
+        const v = hourly ? Math.round(hourly * 730) : 15;
+        total += v;
+        result.push({ label: 'Storage Account (LRS)', value: '+$' + v + '/mo' });
+      }
+
+      if (cancelled) return;
+
+      if (result.length === 0) {
+        setItems([{ label: 'No resources configured yet', value: '' }]);
+        setMonthly('\u2014');
+      } else {
+        setItems(result);
+        setMonthly('~$' + Math.round(total).toLocaleString() + '/mo');
+      }
+      setLoading(false);
+    })();
+
+    return () => { cancelled = true; };
+  }, [artifacts, disabled]);
 
   return React.createElement('div', {
     style: {
@@ -1057,7 +1145,25 @@ export function CostEstimateComponent() {
         padding: '8px 16px', borderTop: '1px solid #f3f2f1',
         fontSize: '11px', color: '#a19f9d', lineHeight: '16px',
       },
-    }, 'Pricing: AKS Automatic control plane + per-vCPU surcharge. System nodes are free. Auto-provisioning picks the cheapest VMs. East US estimates; costs vary by region.')
+    }, loading
+      ? 'Fetching live prices from Azure Retail Prices API…'
+      : 'Prices from Azure Retail Prices API (East US, consumption). Actual costs may vary by region and usage.'
+    ),
+
+    // Action button
+    !disabled && React.createElement('div', {
+      style: { padding: '8px 16px', borderTop: '1px solid #f3f2f1', display: 'flex', justifyContent: 'flex-end' } as React.CSSProperties,
+    },
+      React.createElement('button', {
+        style: {
+          padding: '0 20px', height: '32px', borderRadius: '4px', cursor: 'pointer',
+          fontSize: '13px', fontWeight: 600, border: 'none',
+          backgroundColor: '#171717', color: '#fff',
+        } as React.CSSProperties,
+        disabled: loading,
+        onClick: () => sendPrompt('Looks good, let\u2019s proceed to deployment'),
+      }, 'Looks good, let\u2019s deploy')
+    )
   );
 }
 
@@ -1728,12 +1834,12 @@ export function TryAksApp() {
       if (match) setSelectedFileId(match.id);
     }
 
-    // Diagram: only generate when there are actual Bicep or K8s YAML artifacts
+    // Diagram: only update when THIS turn generated infra/K8s files (not cost-only turns)
     const currentArtifacts = getArtifacts();
-    const hasInfraFiles = currentArtifacts.some((a) =>
-      a.filename.endsWith('.bicep') || a.filename.endsWith('.yaml') || a.filename.endsWith('.yml')
+    const turnHasInfraFiles = generatedFilenames.some((f) =>
+      f.endsWith('.bicep') || f.endsWith('.yaml') || f.endsWith('.yml')
     );
-    if (hasInfraFiles) {
+    if (turnHasInfraFiles) {
       const llmDiagram = spec.diagram || extractMermaidFromLayout(spec.layout);
       if (llmDiagram) {
         const existingDiagram = currentArtifacts.find((a) => a.filename === 'architecture.mmd');
@@ -1764,6 +1870,15 @@ export function TryAksApp() {
     const fixedArtifacts = getArtifacts();
     const violations = validateAllManifests(fixedArtifacts);
     setCurrentViolations(violations);
+
+    // Auto-continue file generation when the LLM signals more batches remain
+    if (codeBlocks.length > 0 && spec.state && spec.state.filesComplete === false) {
+      setTimeout(() => {
+        if (sendPromptRef.current) {
+          sendPromptRef.current('Generate next set of files');
+        }
+      }, 600);
+    }
   }, [selectedFileId, deploymentTrack]);
 
   const handleNewSession = useCallback(() => {
