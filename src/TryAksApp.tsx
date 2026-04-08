@@ -2072,7 +2072,7 @@ export function TryAksApp() {
         visiblePacks: ['azure', 'github'],
         models: ['gpt-5.3-codex', 'gpt-5.3-chat', 'gpt-5.4-nano', 'gpt-4o', 'Kimi-K2.5', 'DeepSeek-V3.2'],
         modelRouter: {
-          default: 'gpt-5.4-nano',
+          default: 'gpt-5.3-chat',
           code: 'gpt-5.3-codex',
           planning: 'gpt-5.3-chat',
         },
