@@ -182,145 +182,7 @@ ACR: Default create new, name derived from app name (e.g. "myapp" → "myappacr"
 Production readiness (ALWAYS generate these):
 - HorizontalPodAutoscaler (HPA): min 2 replicas, max 10, target CPU 70%. Adjust based on workload.
 - PodDisruptionBudget (PDB): minAvailable 1 (or 50% for larger deployments). Ensures availability during node upgrades.
-- Generate k8s/base/hpa.yaml and k8s/base/pdb.yaml as separate files.
-
-═══ 7a. KUBERNETES MANIFESTS — KUSTOMIZE STRUCTURE ═══
-ALWAYS use Kustomize to structure K8s manifests. Never hardcode environment-specific values (image tags, replica counts, env vars, resource limits) directly in manifests.
-
-Directory layout:
-  k8s/
-    base/           — shared manifests with placeholder values
-      kustomization.yaml
-      namespace.yaml
-      deployment.yaml
-      service.yaml
-      gateway.yaml
-      httproute.yaml
-      serviceaccount.yaml
-      hpa.yaml
-      pdb.yaml
-    overlays/
-      dev/
-        kustomization.yaml   — patches for dev (lower resources, 1 replica)
-      staging/
-        kustomization.yaml   — patches for staging
-      production/
-        kustomization.yaml   — patches for production (higher resources, more replicas)
-
-Base kustomization.yaml:
-  apiVersion: kustomize.config.k8s.io/v1beta1
-  kind: Kustomization
-  resources:
-    - namespace.yaml
-    - deployment.yaml
-    - service.yaml
-    - gateway.yaml
-    - httproute.yaml
-    - serviceaccount.yaml
-    - hpa.yaml
-    - pdb.yaml
-
-Overlay kustomization.yaml (production example):
-  apiVersion: kustomize.config.k8s.io/v1beta1
-  kind: Kustomization
-  resources:
-    - ../../base
-  images:
-    - name: APP_IMAGE         # placeholder name used in base/deployment.yaml
-      newName: myappacr.azurecr.io/myapp
-      newTag: latest          # overridden by CI/CD with actual SHA
-  patches:
-    - target:
-        kind: Deployment
-      patch: |-
-        - op: replace
-          path: /spec/replicas
-          value: 3
-        - op: replace
-          path: /spec/template/spec/containers/0/resources/requests/cpu
-          value: "500m"
-        - op: replace
-          path: /spec/template/spec/containers/0/resources/limits/cpu
-          value: "1"
-
-Rules:
-- Base deployment.yaml uses placeholder image "APP_IMAGE:placeholder" — Kustomize images transformer replaces it.
-- Environment variables that differ per environment go in overlay patches or ConfigMapGenerator.
-- Secrets (connection strings, keys) NEVER in manifests — use Workload Identity or ExternalSecrets.
-- The CI/CD pipeline uses "kustomize edit set image" to inject the real image tag at deploy time.
-
-═══ 7b. CI/CD — GITHUB ACTIONS WITH AKS ACTIONS ═══
-ALWAYS use these official GitHub Actions for AKS deployments:
-
-1. Azure/login — authenticate with OIDC federated credentials
-   uses: azure/login@v2
-   with:
-     client-id: \${{ secrets.AZURE_CLIENT_ID }}
-     tenant-id: \${{ secrets.AZURE_TENANT_ID }}
-     subscription-id: \${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-2. Azure/aks-set-context — set kubectl context to the AKS cluster
-   uses: azure/aks-set-context@v4
-   with:
-     resource-group: \${{ env.RESOURCE_GROUP }}
-     cluster-name: \${{ env.CLUSTER_NAME }}
-
-3. Azure/k8s-bake — render Kustomize overlays into a single manifest
-   uses: azure/k8s-bake@v3
-   id: bake
-   with:
-     renderEngine: kustomize
-     kustomizationPath: k8s/overlays/production
-
-4. Azure/k8s-deploy — deploy the baked manifest to AKS with zero-downtime
-   uses: azure/k8s-deploy@v5
-   with:
-     action: deploy
-     manifests: \${{ steps.bake.outputs.manifestsBundle }}
-     images: |
-       \${{ env.ACR_NAME }}.azurecr.io/\${{ env.APP_NAME }}:\${{ github.sha }}
-     namespace: \${{ env.NAMESPACE }}
-
-Pipeline structure (.github/workflows/deploy.yml):
-  name: Build and Deploy to AKS
-  on:
-    push:
-      branches: [main]
-  permissions:
-    id-token: write
-    contents: read
-  env:
-    ACR_NAME: myappacr
-    RESOURCE_GROUP: myapp-rg
-    CLUSTER_NAME: myapp-aks
-    APP_NAME: myapp
-    NAMESPACE: myapp
-  jobs:
-    build-and-deploy:
-      runs-on: ubuntu-latest
-      steps:
-        - uses: actions/checkout@v4
-        - uses: azure/login@v2
-          with: ... (OIDC)
-        - name: Build and push to ACR
-          run: |
-            az acr build --registry \${{ env.ACR_NAME }} --image \${{ env.APP_NAME }}:\${{ github.sha }} .
-        - uses: azure/aks-set-context@v4
-          with: ... (cluster)
-        - uses: azure/k8s-bake@v3
-          id: bake
-          with:
-            renderEngine: kustomize
-            kustomizationPath: k8s/overlays/production
-        - uses: azure/k8s-deploy@v5
-          with:
-            manifests: \${{ steps.bake.outputs.manifestsBundle }}
-            images: |
-              \${{ env.ACR_NAME }}.azurecr.io/\${{ env.APP_NAME }}:\${{ github.sha }}
-            namespace: \${{ env.NAMESPACE }}
-
-NEVER use raw kubectl apply in the pipeline. ALWAYS use these actions.
-NEVER hardcode image tags in manifests — the pipeline injects them via k8s-bake + k8s-deploy.
+- Generate k8s/hpa.yaml and k8s/pdb.yaml as separate files.
 
 ═══ 8. SERVICE DEFAULTS ═══
 Recommend managed Azure options by default. Mention in-cluster alternatives exist but don't list them unless asked.
@@ -341,8 +203,8 @@ Use azure_pricing tool for real estimates. Format: "$X.XX/hr (~$X,XXX/mo)". Defa
 MANDATORY: After generating infrastructure files and BEFORE any azureLogin or azureQuery that creates resources, show the costEstimate component on its own turn. The user MUST see the cost breakdown before deployment begins. Never skip this step. Never start Azure resource creation without showing costs first.
 
 ═══ 10. CODE GENERATION ═══
-- Emit files as codeBlock components (label = filename, e.g. "k8s/base/deployment.yaml"). They auto-save to the file viewer.
-- NEVER generate all files in a single response. Split across 2–3 turns. Max 6 codeBlocks per turn.
+- Emit files as codeBlock components (label = filename, e.g. "k8s/deployment.yaml"). They auto-save to the file viewer.
+- NEVER generate all files in a single response. Split across 2–4 turns (see step 6). Max 4 codeBlocks per turn.
 - Do NOT include any "Generate next set of files" button. The app auto-continues when filesComplete is false.
 - Set state key "filesComplete" to false on every file-generation turn EXCEPT the last one. Set it to true on the final file-generation turn.
 - Keep agentMessage to 3–5 sentences summarizing what was generated and why. Don't list file contents.
@@ -476,10 +338,9 @@ When starting from scratch, generate a working app first:
 Scaffold order:
 1. Application code (if from scratch)
 2. Dockerfile — multi-stage, non-root, specific tags
-3. k8s/base/ — kustomization.yaml, namespace, deployment (safeguards-compliant, placeholder image), service (ClusterIP), gateway + HTTPRoute, service-account, hpa, pdb
-4. k8s/overlays/production/ — kustomization.yaml with image transformer, resource patches
-5. infra/ — main.bicep (AKS Automatic + ACR + services), parameters.json
-6. .github/workflows/deploy.yml — azure/login, az acr build, azure/aks-set-context, azure/k8s-bake (kustomize), azure/k8s-deploy
+3. k8s/ — namespace, deployment (safeguards-compliant), service (ClusterIP), gateway + HTTPRoute, service-account, hpa, pdb
+4. infra/ — main.bicep (AKS Automatic + ACR + services), parameters.json
+5. .github/workflows/deploy.yml — build, push, deploy
 
 After scaffolding: githubLogin → githubPicker → githubCreatePR.`;
 
@@ -554,11 +415,10 @@ KAITO Fine-Tuning (LoRA/QLoRA):
 Scaffold order:
 1. Application code (if from scratch): main.py, requirements.txt
 2. Dockerfile — Python, non-root
-3. k8s/base/ — kustomization.yaml, namespace, deployment (placeholder image), service, gateway, service-account, hpa, pdb, kaito-workspace.yaml (if KAITO), kaito-ragengine.yaml (if RAG)
-4. k8s/overlays/production/ — kustomization.yaml with image transformer, resource patches
-5. Shim apps (if user approved): ragengine-manager/ and/or finetuning-data-manager/ with their own Dockerfiles, K8s manifests, HTTPRoutes
-6. infra/ — main.bicep (AKS + AI toolchain operator if KAITO + ACR + Storage Account if fine-tuning + services), parameters.json
-7. .github/workflows/deploy.yml — azure/login, az acr build, azure/aks-set-context, azure/k8s-bake (kustomize), azure/k8s-deploy
+3. k8s/ — namespace, deployment, service, gateway, service-account, hpa, pdb, kaito-workspace.yaml (if KAITO), kaito-ragengine.yaml (if RAG)
+4. Shim apps (if user approved): ragengine-manager/ and/or finetuning-data-manager/ with their own Dockerfiles, K8s manifests, HTTPRoutes
+5. infra/ — main.bicep (AKS + AI toolchain operator if KAITO + ACR + Storage Account if fine-tuning + services), parameters.json
+6. .github/workflows/deploy.yml (build+push all container images including shim apps)
 
 After scaffolding: githubLogin → githubPicker → githubCreatePR.`;
 
@@ -1862,7 +1722,7 @@ export function TryAksApp() {
   const [linkedRepo, setLinkedRepo] = useState<{ org: string; repo: string } | null>(null);
   const [showEditorTooltip, setShowEditorTooltip] = useState(false);
   const artifacts = useSyncExternalStore(subscribeArtifacts, getArtifacts);
-  const sendPromptRef = useRef<((prompt: string, userDisplayText?: string | null) => void) | null>(null);
+  const sendPromptRef = useRef<((prompt: string) => void) | null>(null);
 
   /** Scan persisted turns for githubOrg + githubRepo and restore linkedRepo. */
   const restoreLinkedRepo = useCallback((sid: string) => {
@@ -2015,7 +1875,7 @@ export function TryAksApp() {
     if (codeBlocks.length > 0 && spec.state && spec.state.filesComplete === false) {
       setTimeout(() => {
         if (sendPromptRef.current) {
-          sendPromptRef.current('Generate next set of files', null);
+          sendPromptRef.current('Generate next set of files');
         }
       }, 600);
     }
@@ -2208,11 +2068,6 @@ export function TryAksApp() {
         sendPromptRef,
         visiblePacks: ['azure', 'github'],
         models: ['gpt-5.3-codex', 'gpt-5.3-chat', 'gpt-5.4-nano', 'gpt-4o', 'Kimi-K2.5', 'DeepSeek-V3.2'],
-        modelRouter: {
-          code: 'gpt-5.3-codex',
-          planning: 'gpt-5.3-chat',
-          default: 'gpt-5.4-nano',
-        },
         appId: 'try-aks',
         theme: {
           primaryColor: '#171717',
