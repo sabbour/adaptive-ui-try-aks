@@ -2208,6 +2208,11 @@ export function TryAksApp() {
         sendPromptRef,
         visiblePacks: ['azure', 'github'],
         models: ['gpt-5.3-codex', 'gpt-5.3-chat', 'gpt-5.4-nano', 'gpt-4o', 'Kimi-K2.5', 'DeepSeek-V3.2'],
+        modelRouter: {
+          code: 'gpt-5.3-codex',
+          planning: 'gpt-5.3-chat',
+          default: 'gpt-5.4-nano',
+        },
         appId: 'try-aks',
         theme: {
           primaryColor: '#171717',
