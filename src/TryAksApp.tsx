@@ -198,9 +198,12 @@ AKS Automatic pricing:
 - Compute surcharge: $7.05/vCPU/mo (GP), $10.96 (Compute), $11.16 (Memory), $32.29 (GPU)
 - NAP selects cheapest VM, continuous bin-packing
 
-Use azure_pricing tool for real estimates. Format: "$X.XX/hr (~$X,XXX/mo)". Default region: eastus.
+MANDATORY: After generating ALL files (filesComplete=true) and BEFORE any azureLogin or azureQuery that creates resources, show the costEstimate component on its own turn. The user MUST see the cost breakdown before deployment begins.
 
-MANDATORY: After generating infrastructure files and BEFORE any azureLogin or azureQuery that creates resources, show the costEstimate component on its own turn. The user MUST see the cost breakdown before deployment begins. Never skip this step. Never start Azure resource creation without showing costs first.
+The costEstimate component takes NO props. It automatically scans generated artifacts and fetches live prices from the Azure Retail Prices API. Emit it as:
+  {type:"costEstimate"}
+Do NOT pass any props like region, workload, profile, or notes. The component handles everything internally.
+Include it as the ONLY component in the layout for that turn (along with an agentMessage summarizing the cost review step).
 
 ═══ 10. CODE GENERATION ═══
 - Emit files as codeBlock components (label = filename, e.g. "k8s/deployment.yaml"). They auto-save to the file viewer.
